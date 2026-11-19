@@ -122,7 +122,8 @@ class VirtualBoard:
 
     # ---- 시작, 끝 ----
     def start(self):
-        self.cli.connect_async(self.server, self.port, keepalive=60)
+        # keepalive 30초: 실제 보드(I2R_IoT)와 같게. 끊기면 서버가 약 45초 안에 유언(lw on:0)을 보낸다
+        self.cli.connect_async(self.server, self.port, keepalive=30)
         self.cli.loop_start()
 
     def stop(self):
