@@ -1,0 +1,920 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>i2r 시뮬레이터</title>
+<style>
+  :root {
+    --bg: #f4f6f9; --card: #ffffff; --line: #dfe3ea; --text: #1c2330; --sub: #667085;
+    --accent: #2563eb; --on: #22c55e; --on-glow: rgba(34,197,94,.45); --off: #cbd2dc;
+    --in-on: #f59e0b; --warn: #b42318; --code: #f1f3f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11151c; --card: #1a2029; --line: #2b333f; --text: #e6e9ef; --sub: #98a2b3;
+      --accent: #60a5fa; --on: #4ade80; --on-glow: rgba(74,222,128,.4); --off: #3a4350;
+      --in-on: #fbbf24; --warn: #f97066; --code: #222a35;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif; }
+  header { padding: 16px; border-bottom: 1px solid var(--line); background: var(--card); }
+  header h1 { margin: 0 0 4px; font-size: 18px; }
+  header .meta { color: var(--sub); font-size: 13px; word-break: break-all; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+  .boards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .card h2 { margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--off); flex: none; }
+  .dot.on { background: var(--on); }
+  .mac { color: var(--sub); font: 12px ui-monospace, Consolas, monospace; margin: 2px 0 10px; }
+  .row-title { font-size: 12px; color: var(--sub); margin: 10px 0 6px; }
+  .ports { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .port { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; color: var(--sub); }
+  button.in { width: 100%; padding: 8px 0; border-radius: 8px; border: 1px solid var(--line);
+              background: var(--code); color: var(--text); font-weight: 600; cursor: pointer; }
+  button.in.on { background: var(--in-on); border-color: var(--in-on); color: #1c1300; }
+  .led { width: 26px; height: 26px; border-radius: 50%; background: var(--off); transition: .15s; }
+  .led.on { background: var(--on); box-shadow: 0 0 12px var(--on-glow); }
+  .remain { height: 16px; font-size: 11px; }
+  .sensor { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .sensor b { font-size: 18px; }
+  .sensor button { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line);
+                   background: var(--code); color: var(--text); cursor: pointer; }
+
+  /* ---- 제어 화면: i2r.link 보드 화면(DeviceDetail)과 같은 모양 ---- */
+  .ui-wrap { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 14px;
+             box-shadow: 0 4px 6px -1px rgba(0,0,0,.05), 0 2px 4px -1px rgba(0,0,0,.03); }
+  .ui-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .ui-head h2 { margin: 0; font-size: 17px; }
+  .ui-head select { padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--card);
+                    color: var(--text); font: 13px ui-monospace, Consolas, monospace; max-width: 100%; }
+  .badge { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--code); color: var(--sub); }
+  .badge.on { background: #dcfce7; color: #166534; }
+  .badge.off { background: #fee2e2; color: #991b1b; }
+  .badge.sim { background: #e0e7ff; color: #3730a3; }
+  .badge.broker { font-family: ui-monospace, Consolas, monospace; margin-left: auto; word-break: break-all; }
+  .ui-note { font-size: 12px; color: var(--sub); margin: -4px 0 10px; }
+  .ui-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: stretch; }
+  @media (max-width: 760px) { .ui-grid { grid-template-columns: 1fr; } }
+  .detail-card { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--sub); margin-bottom: 8px; display: flex; gap: 6px; align-items: center; }
+  .status-grid-row, .switches-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
+  .status-item-col, .switch-item { background: var(--code); border-radius: 10px; padding: 6px 4px; display: flex;
+                                   flex-direction: column; align-items: center; gap: 5px; border: 1px solid var(--line); }
+  .status-name, .switch-name { font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; }
+  .status-indicator { width: 16px; height: 16px; border-radius: 50%; background: #cbd5e1; box-shadow: 0 0 0 3px var(--card); margin: 2px 0; }
+  .status-indicator.status-on { background: #22c55e; box-shadow: 0 0 0 4px #dcfce7; }
+  .switch-toggle { position: relative; width: 40px; height: 22px; background: #e2e8f0; border-radius: 22px;
+                   cursor: pointer; transition: background-color .3s ease; border: none; }
+  .switch-toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px;
+                          background: #fff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,.15);
+                          transition: transform .3s cubic-bezier(.4,0,.2,1); }
+  .switch-toggle.active { background: #3b82f6; }
+  .switch-toggle.active::after { transform: translateX(18px); }
+  .switch-toggle.pending { opacity: .55; }
+  .switch-msg { height: 12px; font-size: 10px; line-height: 12px; color: var(--sub); white-space: nowrap; }
+  .switch-msg.bad { color: var(--warn); }
+  .sensor-row { display: flex; flex-direction: column; gap: 6px; }
+  @media (max-width: 760px) { .sensor-row { flex-direction: row; } }
+  .sensor-card { background: var(--code); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; min-width: 84px; }
+  .sensor-card .lbl { font-size: 11px; color: var(--sub); }
+  .sensor-card .val { font-size: 16px; font-weight: 700; }
+  .ui-empty { color: var(--sub); font-size: 14px; padding: 20px 0; text-align: center; }
+  .nidx { font: 10px ui-monospace, Consolas, monospace; color: var(--sub); line-height: 1; }
+  .numrule { font-size: 12px; color: var(--sub); margin: 0 0 8px; }
+  .numrule code { background: var(--code); padding: 1px 5px; border-radius: 4px; }
+  .proto { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  @media (max-width: 760px) { .proto { grid-template-columns: 1fr; } }
+  .proto-box { border: 1px solid var(--line); border-radius: 14px; padding: 8px 10px; min-width: 0; }
+  .proto-box .card-title { margin-bottom: 4px; justify-content: space-between; }
+  .proto-box .topic { font: 11px ui-monospace, Consolas, monospace; color: var(--sub); font-weight: 400; }
+  .proto-list { font: 12px/1.55 ui-monospace, Consolas, monospace; min-height: 38px; }
+  .proto-list div { white-space: pre-wrap; word-break: break-all; }
+  .proto-list .tm { color: var(--sub); margin-right: 6px; font-weight: 400; }
+  .proto-list .err { color: var(--warn); }
+  .proto-list .lw, .proto-list .hello { color: var(--sub); }
+  .proto.one { grid-template-columns: 1fr; gap: 6px; }
+  .proto.one .proto-list { font-size: 11px; }
+
+  /* ---- 입력 규칙 (bio) ---- */
+  .status-item-col.clickable { cursor: pointer; transition: border-color .15s; }
+  .status-item-col.clickable:hover { border-color: var(--accent); }
+  .status-item-col .gear { font-size: 10px; color: var(--accent); line-height: 1; }
+  .rules { font: 12px/1.6 ui-monospace, Consolas, monospace; }
+  .rules .wait { color: var(--in-on); }
+  .rules .none { color: var(--sub); font-family: inherit; }
+  .bio-overlay { position: fixed; inset: 0; background: rgba(15,20,30,.45); display: flex;
+                 align-items: flex-start; justify-content: center; padding: 40px 16px; z-index: 10; overflow-y: auto; }
+  .bio-overlay[hidden] { display: none; }
+  .bio-modal { background: var(--card); color: var(--text); border-radius: 16px; width: 100%; max-width: 720px;
+               padding: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+  .bio-modal h3 { margin: 0 0 2px; font-size: 17px; }
+  .bio-modal h4 { margin: 16px 0 8px; font-size: 14px; color: var(--accent); }
+  .bio-modal .sub { color: var(--sub); font-size: 12px; word-break: break-all; }
+  .bio-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+  .bio-table { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
+  .bio-table th { background: var(--accent); color: #fff; text-align: left; padding: 7px 8px; font-weight: 600; }
+  .bio-table td { padding: 7px 8px; border-top: 1px solid var(--line); }
+  .bio-table td.mono { font: 12px ui-monospace, Consolas, monospace; }
+  .bio-table .empty { color: var(--sub); text-align: center; }
+  .bio-del { border: none; background: none; cursor: pointer; font-size: 15px; }
+  .bio-form { display: grid; gap: 8px; background: var(--code); border-radius: 10px; padding: 12px; }
+  .bio-form label { display: grid; gap: 3px; font-size: 12px; color: var(--sub); }
+  .bio-form select, .bio-form input { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line);
+                                      background: var(--card); color: var(--text); font-size: 14px; width: 100%; }
+  .bio-form .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .bio-msg { min-height: 18px; font-size: 13px; margin-top: 8px; color: var(--sub); }
+  .bio-msg.bad { color: var(--warn); }
+  .bio-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 12px;
+                 border-top: 1px solid var(--line); padding-top: 12px; }
+  .bio-actions button { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600;
+                        cursor: pointer; background: var(--card); color: var(--text); }
+  .bio-actions .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .bio-actions .danger { background: #f43f5e; border-color: #f43f5e; color: #fff; }
+
+  /* ---- 시간표 (sch) ---- */
+  button.switch-name { background: none; border: none; padding: 0; cursor: pointer; font: inherit;
+                       font-size: 12px; font-weight: 500; color: var(--text); text-decoration: underline dotted; }
+  button.switch-name:hover { color: var(--accent); }
+  .days { display: flex; gap: 6px; flex-wrap: wrap; }
+  .days label { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--text);
+                background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; cursor: pointer; }
+  .days input { width: auto; }
+
+  /* ---- 센서 규칙, 보정 (bs) ---- */
+  .sensor-card.clickable { cursor: pointer; transition: border-color .15s; }
+  .sensor-card.clickable:hover { border-color: var(--accent); }
+  .sensor-card .gear { font-size: 10px; color: var(--accent); }
+  .cal-row { display: flex; gap: 8px; }
+  .cal-row input { flex: 1; }
+  .cal-row button { padding: 8px 14px; border-radius: 8px; border: none; background: var(--accent); color: #fff;
+                    font-weight: 600; cursor: pointer; white-space: nowrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1>i2r 시뮬레이터 <span id="conn" class="meta"></span></h1>
+  <div class="meta" id="meta">불러오는 중...</div>
+</header>
+<main>
+  <section class="ui-wrap" id="ui">
+    <div class="ui-head">
+      <h2>제어 화면</h2>
+      <select id="uiSel" aria-label="보드 고르기"></select>
+      <span class="badge" id="uiOnline">-</span>
+      <span class="badge" id="uiKind"></span>
+      <span class="badge sim" id="uiSim" hidden>가상 보드</span>
+      <span class="badge broker" id="uiBroker" title="제어 화면과 가상 보드가 붙은 MQTT 브로커">브로커 -</span>
+    </div>
+    <p class="ui-note">i2r.link의 보드 화면과 같은 역할입니다. 스위치를 누르면 MQTT로 <code>so</code> 명령을 보내고, 보드가 보낸 상태로 화면이 바뀝니다. 같은 서버, 같은 그룹이면 실제 보드도 여기 나타납니다.</p>
+    <p class="numrule">번호: 사람이 보는 이름은 1부터, JSON은 0부터. <code>스위치 1</code> = <code>OUT1</code> = <code>"n":0</code> = <code>"out"[0]</code> = 코드 <code>plc.output(1)</code></p>
+    <div id="uiBody"><div class="ui-empty">보드를 찾는 중입니다...</div></div>
+  </section>
+
+  <div class="boards" id="boards"></div>
+</main>
+
+<div class="bio-overlay" id="bioOverlay" hidden>
+  <div class="bio-modal" role="dialog" aria-modal="true" aria-labelledby="bioTitle">
+    <h3 id="bioTitle">입력 규칙</h3>
+    <div class="sub" id="bioSub"></div>
+
+    <h4>설정된 동작 목록</h4>
+    <div class="bio-table-wrap">
+      <table class="bio-table">
+        <thead><tr><th>번호</th><th>트리거</th><th>지연</th><th>동작시간</th><th>대상 보드</th><th>출력</th><th>상태</th><th>삭제</th></tr></thead>
+        <tbody id="bioRows"></tbody>
+      </table>
+    </div>
+
+    <h4>포트 트리거</h4>
+    <div class="bio-form">
+      <label>이 입력이
+        <select id="bioTr"><option value="1">켜짐</option><option value="0">꺼짐</option></select></label>
+      <label>대상 보드
+        <select id="bioDev"></select></label>
+      <label>대상 출력
+        <select id="bioOut"></select></label>
+      <label>출력을
+        <select id="bioV"><option value="1">켜짐</option><option value="0">꺼짐</option></select></label>
+      <div class="two">
+        <label>지연 (초)<input type="number" id="bioD" min="0" max="86400" placeholder="0"></label>
+        <label>동작 시간 (초, 0 = 계속)<input type="number" id="bioDu" min="0" max="86400" placeholder="0"></label>
+      </div>
+    </div>
+    <div class="bio-msg" id="bioMsg"></div>
+
+    <div class="bio-actions">
+      <button id="bioView">보기</button>
+      <button class="primary" id="bioAdd">등록</button>
+      <button class="danger" id="bioClear">모두지움</button>
+      <button id="bioClose">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="bio-overlay" id="schOverlay" hidden>
+  <div class="bio-modal" role="dialog" aria-modal="true" aria-labelledby="schTitle">
+    <h3 id="schTitle">시간표</h3>
+    <div class="sub" id="schSub"></div>
+
+    <h4>등록된 스케줄</h4>
+    <div class="bio-table-wrap">
+      <table class="bio-table">
+        <thead><tr><th>번호</th><th>시간 / 반복</th><th>삭제</th></tr></thead>
+        <tbody id="schRows"></tbody>
+      </table>
+    </div>
+
+    <h4>스케줄 추가</h4>
+    <div class="bio-form">
+      <label>시작 시간<input type="time" id="schStart" step="1" value="09:00:00"></label>
+      <label>종료 시간<input type="time" id="schEnd" step="1" value="17:00:00"></label>
+      <label>반복 설정
+        <select id="schRm"><option value="daily">매일</option><option value="weekly">매주</option></select></label>
+      <div class="days" id="schDays" hidden></div>
+    </div>
+    <div class="bio-msg" id="schMsg"></div>
+
+    <div class="bio-actions">
+      <button id="schView">보기</button>
+      <button class="primary" id="schAdd">저장</button>
+      <button class="danger" id="schClear">모두 지우기</button>
+      <button id="schClose">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="bio-overlay" id="bsOverlay" hidden>
+  <div class="bio-modal" role="dialog" aria-modal="true" aria-labelledby="bsTitle">
+    <h3 id="bsTitle">센서 트리거</h3>
+    <div class="sub" id="bsSub"></div>
+
+    <h4>설정된 트리거 목록</h4>
+    <div class="bio-table-wrap">
+      <table class="bio-table">
+        <thead><tr><th>번호</th><th>조건</th><th>설정</th><th>지연</th><th>동작시간</th><th>동작</th><th>삭제</th></tr></thead>
+        <tbody id="bsRows"></tbody>
+      </table>
+    </div>
+
+    <h4>트리거 추가</h4>
+    <div class="bio-form">
+      <label>트리거 선택
+        <select id="bsTr"><option value="1">⬆️ 올라갈 때</option><option value="0">⬇️ 내려갈 때</option></select></label>
+      <div class="two">
+        <label id="bsTvLabel">기준값<input type="number" id="bsTv" step="0.1" placeholder="예: 30"></label>
+        <label>지연 (초)<input type="number" id="bsD" min="0" max="86400" placeholder="0"></label>
+      </div>
+      <label>동작 시간 (초, 0 = 계속)<input type="number" id="bsDu" min="0" max="86400" placeholder="0"></label>
+      <label>동작할 보드
+        <select id="bsDev"></select></label>
+      <div class="two">
+        <label>출력<select id="bsOut"></select></label>
+        <label>상태<select id="bsV"><option value="1">켜짐</option><option value="0">꺼짐</option></select></label>
+      </div>
+    </div>
+
+    <h4 id="bsCalTitle">보정 (현재 값 입력)</h4>
+    <div class="bio-form">
+      <div class="sub" id="bsNow"></div>
+      <div class="cal-row">
+        <input type="number" id="bsCal" step="0.1" placeholder="예: 28.1" aria-label="보정할 현재 값">
+        <button id="bsCalSave">보정 저장</button>
+      </div>
+    </div>
+    <div class="bio-msg" id="bsMsg"></div>
+
+    <div class="bio-actions">
+      <button id="bsView">보기</button>
+      <button class="primary" id="bsAdd">등록</button>
+      <button class="danger" id="bsClear">모두지움</button>
+      <button id="bsClose">닫기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let info = null;
+const $ = (id) => document.getElementById(id);
+
+async function post(url, body) {
+  try {
+    await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    refresh();
+  } catch (e) {}
+}
+
+function boardCard(b) {
+  const el = document.createElement("div");
+  el.className = "card";
+  el.id = "board" + b.index;
+  let ins = "", outs = "";
+  for (let n = 0; n < b.in.length; n++) {
+    ins += `<div class="port"><button class="in" data-b="${b.index}" data-n="${n}">IN${n + 1}</button><span class="nidx">in[${n}]</span></div>`;
+    outs += `<div class="port"><div class="led" id="led${b.index}_${n}"></div>OUT${n + 1}<span class="nidx">n:${n}</span><div class="remain" id="rem${b.index}_${n}"></div></div>`;
+  }
+  el.innerHTML = `
+    <h2><span class="dot" id="dot${b.index}"></span>가상 보드 ${b.index} · ${b.kind}</h2>
+    <div class="mac">${b.mac}</div>
+    <div class="row-title">입력 (눌러서 켜고 끄기, 실제 단자에 전압을 넣은 것과 같음)</div>
+    <div class="ports">${ins}</div>
+    <div class="row-title">출력 (so 명령으로 켜짐, 실제 릴레이 대신)</div>
+    <div class="ports">${outs}</div>
+    <div class="row-title">입력 규칙 (제어 화면에서 "입력 N"을 눌러 설정)</div>
+    <div class="rules" id="rules${b.index}"></div>
+    <div class="row-title">시간표 (제어 화면에서 "스위치 N" 이름을 눌러 설정) · 보드 시각 <span id="clock${b.index}"></span></div>
+    <div class="rules" id="slots${b.index}"></div>
+    <div class="row-title">센서 트리거 (제어 화면에서 온도, 습도 카드를 눌러 설정)</div>
+    <div class="rules" id="srules${b.index}"></div>
+    <div class="row-title">센서 (버튼은 측정값을 바꿈, 보내는 값 = 측정값 + 보정값)</div>
+    <div class="sensor">온도 <b id="temp${b.index}"></b>℃ <span class="nidx" id="tcal${b.index}"></span>
+      <button data-b="${b.index}" data-k="temp" data-d="-1">온도 −1</button><button data-b="${b.index}" data-k="temp" data-d="1">온도 +1</button></div>
+    <div class="sensor">습도 <b id="humi${b.index}"></b>% <span class="nidx" id="hcal${b.index}"></span>
+      <button data-b="${b.index}" data-k="humi" data-d="-1">습도 −1</button><button data-b="${b.index}" data-k="humi" data-d="1">습도 +1</button></div>
+    <div class="proto one">
+      <div class="proto-box"><div class="card-title">← 받은 명령 <span class="topic">${b.topic_in}</span></div><div class="proto-list" id="brx${b.index}"></div></div>
+      <div class="proto-box"><div class="card-title">→ 보낸 메시지 <span class="topic">${b.topic_out}</span></div><div class="proto-list" id="btx${b.index}"></div></div>
+    </div>`;
+  el.querySelectorAll("button.in").forEach((btn) => btn.onclick = () => {
+    const bi = +btn.dataset.b, n = +btn.dataset.n;
+    const cur = btn.classList.contains("on") ? 1 : 0;
+    post("/api/input", { board: bi, n, v: cur ? 0 : 1 });
+  });
+  el.querySelectorAll(".sensor button").forEach((btn) => btn.onclick = () =>
+    post("/api/" + btn.dataset.k, { board: +btn.dataset.b, delta: +btn.dataset.d }));
+  return el;
+}
+
+async function refresh() {
+  try {
+    const r = await fetch("/api/boards", { cache: "no-store" });
+    info = await r.json();
+    $("conn").textContent = "";
+  } catch (e) {
+    $("conn").textContent = "· 시뮬레이터가 꺼져 있습니다";
+    return;
+  }
+  $("meta").textContent = `서버 ${info.server}:${info.port} · 그룹 ${info.group} · 보드가 보냄 ${info.topic_out} · 명령은 ${info.topic_in}`;
+  $("uiBroker").textContent = `브로커 ${info.server}:${info.port} · 그룹 ${info.group}`;
+  const wrap = $("boards");
+  // 화면(index.html)은 새로고침하면 바로 새것이 되지만, 가상 보드(board.py)는 시뮬레이터를 켤 때만 읽힌다.
+  // 예전 시뮬레이터가 보내지 않는 값은 기본값으로 채우고, 다시 켜라고 알린다 (화면이 멈추지 않게)
+  const old = info.boards.some((b) => b.srules === undefined || b.slots === undefined || b.rules === undefined);
+  $("conn").textContent = old ? "· ⚠️ 시뮬레이터가 예전 버전입니다. 창에서 Ctrl+C로 끄고 다시 켜 주세요" : "";
+  for (const b of info.boards) {
+    b.rules = b.rules || []; b.slots = b.slots || []; b.srules = b.srules || [];
+    b.cal = b.cal || { temp: 0, humi: 0 };
+    if (b.temp_out === undefined) b.temp_out = b.temp;
+    if (b.humi_out === undefined) b.humi_out = b.humi;
+    if (b.clock === undefined) b.clock = "-";
+    if (!$("board" + b.index)) wrap.appendChild(boardCard(b));
+    $("dot" + b.index).className = "dot" + (b.connected ? " on" : "");
+    document.querySelectorAll(`#board${b.index} button.in`).forEach((btn, n) =>
+      btn.classList.toggle("on", !!b.in[n]));
+    b.out.forEach((v, n) => {
+      $(`led${b.index}_${n}`).className = "led" + (v ? " on" : "");
+      $(`rem${b.index}_${n}`).textContent = b.remain[n] ? `${b.remain[n]}초 뒤 꺼짐` : "";
+    });
+    renderRules(b);
+    renderSlots(b);
+    $("clock" + b.index).textContent = b.clock;
+    renderSensorRules(b);
+    $("temp" + b.index).textContent = b.temp_out.toFixed(1);
+    $("humi" + b.index).textContent = b.humi_out.toFixed(1);
+    const calText = (raw, c) => (c ? `측정 ${raw.toFixed(1)} 보정 ${c > 0 ? "+" : ""}${c}` : "");
+    $("tcal" + b.index).textContent = calText(b.temp, b.cal.temp);
+    $("hcal" + b.index).textContent = calText(b.humi, b.cal.humi);
+    uiProto("brx" + b.index, b.rx || [], "아직 받은 명령이 없습니다.");
+    uiProto("btx" + b.index, b.tx || [], "아직 보낸 메시지가 없습니다.");
+  }
+}
+
+// ---- 제어 화면 ----
+let uiMac = null, uiBuiltFor = null;
+const pending = {};   // 출력 번호 → {v, at}: 명령을 보내고 보드 상태를 기다리는 중
+
+function uiBuild(d) {
+  // 사람이 보는 이름은 1부터, JSON 번호는 0부터 (둘을 함께 보여 준다)
+  const ins = d.in.map((_, i) => `
+    <div class="status-item-col clickable" id="uiInBox${i}" role="button" tabindex="0"
+         title="눌러서 입력 ${i + 1} 규칙 설정"><span class="status-name">입력 ${i + 1}</span>
+      <div class="status-indicator" id="uiIn${i}"></div><span class="nidx">in[${i}]</span>
+      <span class="gear">⚙ 설정</span></div>`).join("");
+  const outs = d.out.map((_, i) => `
+    <div class="switch-item"><button class="switch-name" id="uiOutName${i}"
+      title="눌러서 스위치 ${i + 1} 시간표 설정">스위치 ${i + 1}</button>
+      <button class="switch-toggle" id="uiOut${i}" aria-label="스위치 ${i + 1}"></button>
+      <span class="nidx">n:${i}</span>
+      <div class="switch-msg" id="uiMsg${i}"></div></div>`).join("");
+  $("uiBody").innerHTML = `<div class="ui-grid">
+    <div class="detail-card"><div class="card-title">▣ 입력 상태 (Inputs)</div><div class="status-grid-row">${ins}</div></div>
+    <div class="detail-card"><div class="card-title">ϟ 출력 제어 (Outputs)</div><div class="switches-grid">${outs}</div></div>
+    <div class="sensor-row" id="uiSensors"></div></div>
+    <div class="proto">
+      <div class="proto-box"><div class="card-title">⇒ 보낸 명령 <span class="topic" id="uiTxTopic"></span></div><div class="proto-list" id="uiTx"></div></div>
+      <div class="proto-box"><div class="card-title">← 받은 메시지 <span class="topic" id="uiRxTopic"></span></div><div class="proto-list" id="uiRx"></div></div>
+    </div>`;
+  d.out.forEach((_, i) => $("uiOut" + i).onclick = () => {
+    const cur = $("uiOut" + i).classList.contains("active") ? 1 : 0;
+    const v = cur ? 0 : 1;
+    pending[i] = { v, at: Date.now() };
+    fetch("/api/cmd", { method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ c: "so", m: uiMac, n: i, v }) });
+    uiPaint(d);
+  });
+  d.in.forEach((_, i) => {
+    const box = $("uiInBox" + i);
+    box.onclick = () => bioOpen(d.mac, i);
+    box.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); bioOpen(d.mac, i); } };
+  });
+  d.out.forEach((_, i) => $("uiOutName" + i).onclick = () => schOpen(d.mac, i));
+  // 센서 카드는 값이 바뀔 때마다 다시 그려지므로, 감싸는 칸에서 한 번에 받는다
+  const sensBox = $("uiSensors");
+  const openSensor = (e) => { const c = e.target.closest(".sensor-card[data-ts]"); if (c) bsOpen(uiMac, c.dataset.ts); };
+  sensBox.onclick = openSensor;
+  sensBox.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSensor(e); } };
+  uiBuiltFor = d.mac + ":" + d.in.length + ":" + d.out.length;
+}
+
+function uiPaint(d) {
+  d.in.forEach((v, i) => $("uiIn" + i).className = "status-indicator" + (v ? " status-on" : ""));
+  d.out.forEach((v, i) => {
+    const btn = $("uiOut" + i), msg = $("uiMsg" + i), p = pending[i];
+    if (p && v === p.v) delete pending[i];                       // 보드가 바뀐 상태를 보냄 → 확정
+    const q = pending[i];
+    const late = q && Date.now() - q.at > 3000;
+    btn.className = "switch-toggle" + (v ? " active" : "") + (q && !late ? " pending" : "");
+    msg.className = "switch-msg" + (late ? " bad" : "");
+    msg.textContent = late ? "응답 없음" : (q ? "보내는 중" : "");
+    if (late && Date.now() - q.at > 8000) delete pending[i];
+  });
+  const sens = [];
+  const card = (ts, lbl, val) => `<div class="sensor-card clickable" data-ts="${ts}" role="button" tabindex="0"
+    title="눌러서 ${lbl} 트리거, 보정 설정"><div class="lbl">${lbl}</div><div class="val">${val}</div><div class="gear">⚙ 설정</div></div>`;
+  if (d.temp !== undefined) sens.push(card("temp", "온도", `${Number(d.temp).toFixed(1)}℃`));
+  if (d.humi !== undefined) sens.push(card("humi", "습도", `${Number(d.humi).toFixed(0)}%`));
+  const sensHtml = sens.join("");
+  if ($("uiSensors").dataset.html !== sensHtml) {     // 바뀔 때만 다시 그려서 누르는 중에 사라지지 않게
+    $("uiSensors").dataset.html = sensHtml;
+    $("uiSensors").innerHTML = sensHtml;
+  }
+  $("uiOnline").textContent = d.online ? "온라인" : "오프라인";
+  $("uiOnline").className = "badge " + (d.online ? "on" : "off");
+  $("uiKind").textContent = d.t || "";
+  $("uiSim").hidden = !d.sim;
+  uiProto("uiTx", d.tx || [], "아직 보낸 명령이 없습니다. 스위치를 눌러 보세요.");
+  uiProto("uiRx", d.rx || [], "아직 받은 메시지가 없습니다.");
+  if (info) { $("uiTxTopic").textContent = info.topic_in; $("uiRxTopic").textContent = info.topic_out; }
+}
+
+function uiProto(id, items, empty) {
+  // 마지막 메시지 하나만, 잘리지 않게 보여 준다
+  const box = $(id);
+  const last = items.slice(0, 1);
+  const key = last.map((x) => x.t + x.text).join("|");
+  if (box.dataset.key === key) return;                 // 바뀐 것이 없으면 다시 그리지 않음
+  box.dataset.key = key;
+  if (!last.length) { box.innerHTML = `<div class="tm">${empty}</div>`; return; }
+  box.innerHTML = "";
+  for (const x of last) {
+    const row = document.createElement("div");
+    let kind = "";
+    try { const j = JSON.parse(x.text); kind = j.c === "err" ? "err" : (j.c === "lw" || j.c === "hello") ? j.c : ""; } catch (e) {}
+    row.className = kind;
+    row.title = x.text;
+    row.innerHTML = `<span class="tm">${x.t}</span>`;
+    row.appendChild(document.createTextNode(x.text));
+    box.appendChild(row);
+  }
+}
+
+async function uiRefresh() {
+  let list;
+  try { list = (await (await fetch("/api/devices", { cache: "no-store" })).json()).devices; } catch (e) { return; }
+  const usable = list.filter((d) => d.in && d.in.length && d.out && d.out.length);
+  const sel = $("uiSel");
+  const want = usable.map((d) => d.mac).join(",");
+  if (sel.dataset.list !== want) {
+    sel.innerHTML = usable.map((d) => `<option value="${d.mac}">${d.mac}${d.sim ? " (가상)" : ""} ${d.t || ""}</option>`).join("");
+    sel.dataset.list = want;
+    if (!usable.find((d) => d.mac === uiMac)) uiMac = usable.length ? usable[0].mac : null;
+    sel.value = uiMac || "";
+  }
+  uiDevices = usable;
+  bioPaint();
+  schPaint();
+  bsPaint();
+  const d = usable.find((x) => x.mac === uiMac);
+  if (!d) return;
+  if (uiBuiltFor !== d.mac + ":" + d.in.length + ":" + d.out.length) uiBuild(d);
+  uiPaint(d);
+}
+// ---- 입력 규칙 (bio): i2r.link의 입력 설정 창과 같은 역할 ----
+// 번호: 화면은 1부터 (입력 1, 스위치 1), 보내는 JSON은 0부터 ("n":0)
+let uiDevices = [];
+const bio = { mac: null, port: 0, devKey: "" };
+const onoff = (v) => (v ? "켜짐" : "꺼짐");
+
+function devName(mac) {
+  const vb = info && info.boards.find((b) => b.mac === mac);
+  return vb ? `가상 보드 ${vb.index}` : mac;
+}
+
+function sendCmd(obj) {
+  return fetch("/api/cmd", { method: "POST", headers: { "Content-Type": "application/json" },
+                             body: JSON.stringify(obj) }).then((r) => r.json()).catch(() => ({ ok: false }));
+}
+
+function bioAsk() {
+  if (bio.mac) sendCmd({ c: "bio", o: "list", m: bio.mac, n: bio.port });
+}
+
+function bioOpen(mac, port) {
+  bio.mac = mac; bio.port = port; bio.devKey = ""; bio.errAt = Date.now();
+  $("bioTitle").textContent = `입력 ${port + 1} 규칙`;
+  $("bioSub").textContent = `${devName(mac)} · ${mac} · JSON "n":${port}`;
+  $("bioD").value = ""; $("bioDu").value = "";
+  bioMsg("");
+  $("bioOverlay").hidden = false;
+  bioPaint();
+  bioAsk();
+}
+
+function bioClose() { $("bioOverlay").hidden = true; bio.mac = null; }
+
+function bioMsg(text, bad) {
+  $("bioMsg").textContent = text;
+  $("bioMsg").className = "bio-msg" + (bad ? " bad" : "");
+}
+
+function bioFillOutputs() {
+  const dev = uiDevices.find((x) => x.mac === $("bioDev").value);
+  const keep = $("bioOut").value;
+  const n = dev ? dev.out.length : 0;
+  $("bioOut").innerHTML = Array.from({ length: n }, (_, i) =>
+    `<option value="${i}">스위치 ${i + 1} (n:${i})</option>`).join("");
+  if (keep && +keep < n) $("bioOut").value = keep;
+}
+
+function bioPaint() {
+  if (!bio.mac) return;
+  // 대상 보드 목록 (바뀔 때만 다시 채워서 고른 값이 풀리지 않게)
+  const key = uiDevices.map((x) => x.mac + ":" + x.out.length).join(",");
+  if (key !== bio.devKey) {
+    const keep = $("bioDev").value || bio.mac;
+    $("bioDev").innerHTML = uiDevices.map((x) =>
+      `<option value="${x.mac}">${x.mac === bio.mac ? "이 보드" : devName(x.mac)}${x.sim ? " (가상)" : ""} · ${x.mac}</option>`).join("");
+    $("bioDev").value = uiDevices.find((x) => x.mac === keep) ? keep : bio.mac;
+    bio.devKey = key;
+    bioFillOutputs();
+  }
+  // 설정된 동작 목록
+  const dev = uiDevices.find((x) => x.mac === bio.mac);
+  const rows = (dev && dev.bio && dev.bio[String(bio.port)]) || [];
+  const body = $("bioRows");
+  const rowsKey = JSON.stringify(rows);
+  if (body.dataset.key !== rowsKey) {
+    body.dataset.key = rowsKey;
+    body.innerHTML = rows.length ? "" : `<tr><td colspan="8" class="empty">설정된 동작이 없습니다.</td></tr>`;
+    for (const p of rows) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${p.sI}</td><td>${onoff(p.tr)}</td><td>${p.d > 0 ? p.d + "초" : "-"}</td>
+        <td>${p.du > 0 ? p.du + "초" : "계속"}</td><td class="mono"></td><td>스위치 ${p.n + 1}</td>
+        <td>${onoff(p.v)}</td><td><button class="bio-del" title="삭제">🗑️</button></td>`;
+      tr.querySelector(".mono").textContent = p.m === bio.mac ? "이 보드" : devName(p.m);
+      tr.querySelector(".bio-del").onclick = () => {
+        sendCmd({ c: "bio", o: "delete", m: bio.mac, n: bio.port, sI: p.sI });
+        bioMsg(`${p.sI}번을 지웠습니다.`);
+        setTimeout(bioAsk, 500);
+      };
+      body.appendChild(tr);
+    }
+  }
+  // 보드가 보낸 오류 (창을 연 뒤의 bio 오류만)
+  if (dev && dev.err && dev.err.re === "bio" && dev.err.at * 1000 > bio.errAt) {
+    bio.errAt = dev.err.at * 1000;
+    const why = { bad_n: "없는 번호입니다", bad_v: "값이 올바르지 않습니다", full: "규칙이 너무 많습니다",
+                  bad_si: "그 번호의 규칙이 없습니다", unknown: "이 보드는 입력 규칙을 지원하지 않습니다" }[dev.err.code];
+    bioMsg(`보드가 거절했습니다: ${why || dev.err.code}`, true);
+  }
+}
+
+$("bioDev").onchange = bioFillOutputs;
+$("bioView").onclick = () => { bioMsg(""); bioAsk(); };
+$("bioClose").onclick = bioClose;
+$("bioOverlay").onclick = (e) => { if (e.target === $("bioOverlay")) bioClose(); };
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (bio.mac) bioClose();
+  if (sch.mac) schClose();
+  if (bs.mac) bsClose();
+});
+$("bioClear").onclick = () => {
+  if (!confirm(`입력 ${bio.port + 1}의 규칙을 모두 지울까요?`)) return;
+  sendCmd({ c: "bio", o: "deleteAll", m: bio.mac, n: bio.port });
+  bioMsg("모두 지웠습니다.");
+  setTimeout(bioAsk, 500);
+};
+$("bioAdd").onclick = async () => {
+  const sec = (id) => { const v = $(id).value.trim(); return v === "" ? 0 : Number(v); };
+  const d = sec("bioD"), du = sec("bioDu");
+  if (![d, du].every((x) => Number.isInteger(x) && x >= 0 && x <= 86400)) {
+    return bioMsg("지연과 동작 시간은 0~86400 사이의 정수(초)로 넣어 주세요.", true);
+  }
+  if (!$("bioDev").value || $("bioOut").value === "") return bioMsg("대상 보드와 출력을 고르세요.", true);
+  const cmd = { c: "bio", o: "insert", m: bio.mac, n: bio.port, tr: +$("bioTr").value, d, du,
+                ps: [{ m: $("bioDev").value, n: +$("bioOut").value, v: +$("bioV").value }] };
+  const r = await sendCmd(cmd);
+  if (!r.ok) return bioMsg("보내지 못했습니다. 시뮬레이터 연결을 확인하세요.", true);
+  bioMsg("등록했습니다. 목록을 다시 불러옵니다.");
+  setTimeout(bioAsk, 600);   // 실제 보드는 insert에 답하지 않으므로 목록으로 확인한다
+};
+
+// ---- 시간표 (sch): i2r.link의 스위치 시간표 창과 같은 역할 ----
+// 시간은 0시부터 센 초 (오전 9시 = 32400). 요일은 0 = 일요일
+const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+const sch = { mac: null, pi: 0, errAt: 0 };
+const z2 = (n) => String(n).padStart(2, "0");
+const hms = (s) => `${z2(Math.floor(s / 3600))}:${z2(Math.floor(s / 60) % 60)}:${z2(s % 60)}`;
+const toSec = (v) => { const [h, m, s] = v.split(":").map(Number); return (h || 0) * 3600 + (m || 0) * 60 + (s || 0); };
+const repeatText = (rm, dw) => (rm === "weekly" ? `매주 ${DAYS[dw] ?? dw}요일` : "매일");
+
+$("schDays").innerHTML = DAYS.map((d, i) => `<label><input type="checkbox" value="${i}">${d}</label>`).join("");
+$("schRm").onchange = () => { $("schDays").hidden = $("schRm").value !== "weekly"; };
+
+function schAsk() {
+  if (sch.mac) sendCmd({ c: "sch", o: "list", m: sch.mac, pi: sch.pi });
+}
+
+function schMsg(text, bad) {
+  $("schMsg").textContent = text;
+  $("schMsg").className = "bio-msg" + (bad ? " bad" : "");
+}
+
+function schOpen(mac, pi) {
+  sch.mac = mac; sch.pi = pi; sch.errAt = Date.now();
+  $("schTitle").textContent = `스위치 ${pi + 1} 시간표`;
+  $("schSub").textContent = `${devName(mac)} · ${mac} · JSON "pi":${pi}`;
+  schMsg("");
+  $("schOverlay").hidden = false;
+  schPaint();
+  schAsk();
+}
+
+function schClose() { $("schOverlay").hidden = true; sch.mac = null; }
+
+function schPaint() {
+  if (!sch.mac) return;
+  const dev = uiDevices.find((x) => x.mac === sch.mac);
+  const rows = (dev && dev.sch && dev.sch[String(sch.pi)]) || [];
+  const vb = info && info.boards.find((b) => b.mac === sch.mac);
+  const clock = vb ? ` · 보드 시각 ${vb.clock}` : "";
+  $("schSub").textContent = `${devName(sch.mac)} · ${sch.mac} · JSON "pi":${sch.pi}${clock}`;
+  const body = $("schRows");
+  const key = JSON.stringify(rows);
+  if (body.dataset.key !== key) {
+    body.dataset.key = key;
+    body.innerHTML = rows.length ? "" : `<tr><td colspan="3" class="empty">등록된 스케줄이 없습니다.</td></tr>`;
+    for (const s of rows) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${s.index + 1}</td><td>${hms(s.start)} ~ ${hms(s.end)} ${repeatText(s.rm, s.dw)}</td>
+        <td><button class="bio-del" title="삭제">🗑️</button></td>`;
+      tr.querySelector(".bio-del").onclick = () => {
+        sendCmd({ c: "sch", o: "delete", m: sch.mac, pi: sch.pi, sI: s.index });
+        schMsg(`${s.index + 1}번을 지웠습니다.`);
+      };
+      body.appendChild(tr);
+    }
+  }
+  if (dev && dev.err && dev.err.re === "sch" && dev.err.at * 1000 > sch.errAt) {
+    sch.errAt = dev.err.at * 1000;
+    const why = { bad_n: "없는 스위치 번호입니다", bad_v: "시간이나 요일이 올바르지 않습니다", full: "스케줄이 너무 많습니다",
+                  bad_si: "그 번호의 스케줄이 없습니다", unknown: "이 보드는 시간표를 지원하지 않습니다 (시뮬레이터를 다시 켜 보세요)" }[dev.err.code];
+    schMsg(`보드가 거절했습니다: ${why || dev.err.code}`, true);
+  }
+}
+
+$("schView").onclick = () => { schMsg(""); schAsk(); };
+$("schClose").onclick = schClose;
+$("schOverlay").onclick = (e) => { if (e.target === $("schOverlay")) schClose(); };
+$("schClear").onclick = () => {
+  if (!confirm(`스위치 ${sch.pi + 1}의 스케줄을 모두 지울까요?`)) return;
+  sendCmd({ c: "sch", o: "deleteAll", m: sch.mac, pi: sch.pi });
+  schMsg("모두 지웠습니다.");
+  setTimeout(schAsk, 500);   // 실제 보드는 deleteAll 뒤에 목록을 보내지 않는다
+};
+$("schAdd").onclick = async () => {
+  if (!$("schStart").value || !$("schEnd").value) return schMsg("시작 시간과 종료 시간을 넣어 주세요.", true);
+  const start = toSec($("schStart").value), end = toSec($("schEnd").value);
+  if (start === end) return schMsg("시작 시간과 종료 시간이 같습니다.", true);
+  const cmd = { c: "sch", o: "insert", m: sch.mac, pi: sch.pi, start, end, rm: $("schRm").value, dw: 0 };
+  if (cmd.rm === "weekly") {
+    cmd.dw = [...$("schDays").querySelectorAll("input:checked")].map((x) => +x.value);
+    if (!cmd.dw.length) return schMsg("매주 반복은 요일을 하나 이상 고르세요.", true);
+  }
+  const r = await sendCmd(cmd);
+  if (!r.ok) return schMsg("보내지 못했습니다. 시뮬레이터 연결을 확인하세요.", true);
+  schMsg("저장했습니다. 보드가 목록을 다시 보냅니다.");   // 실제 보드는 insert 뒤에 목록을 보낸다
+};
+
+// ---- 센서 규칙, 보정 (bs): i2r.link의 센서 트리거 창과 같은 역할 ----
+const SENS = { temp: { name: "온도", unit: "℃" }, humi: { name: "습도", unit: "%" } };
+const bs = { mac: null, ts: "temp", devKey: "", errAt: 0 };
+
+function bsAsk() {
+  if (bs.mac) sendCmd({ c: "bs", o: "list", m: bs.mac, ts: bs.ts });
+}
+
+function bsMsg(text, bad) {
+  $("bsMsg").textContent = text;
+  $("bsMsg").className = "bio-msg" + (bad ? " bad" : "");
+}
+
+function bsOpen(mac, ts) {
+  if (!mac || !SENS[ts]) return;
+  bs.mac = mac; bs.ts = ts; bs.devKey = ""; bs.errAt = Date.now();
+  const s = SENS[ts];
+  $("bsTitle").textContent = `${s.name} 센서 트리거`;
+  $("bsCalTitle").textContent = `${s.name} 보정 (지금 실제 ${s.name} 입력)`;
+  $("bsTvLabel").firstChild.textContent = `기준값 (${s.unit})`;
+  $("bsTv").value = ""; $("bsD").value = ""; $("bsDu").value = ""; $("bsCal").value = "";
+  bsMsg("");
+  $("bsOverlay").hidden = false;
+  bsPaint();
+  bsAsk();
+}
+
+function bsClose() { $("bsOverlay").hidden = true; bs.mac = null; }
+
+function bsFillOutputs() {
+  const dev = uiDevices.find((x) => x.mac === $("bsDev").value);
+  const keep = $("bsOut").value;
+  const n = dev ? dev.out.length : 0;
+  $("bsOut").innerHTML = Array.from({ length: n }, (_, i) => `<option value="${i}">스위치 ${i + 1} (n:${i})</option>`).join("");
+  if (keep && +keep < n) $("bsOut").value = keep;
+}
+
+function bsPaint() {
+  if (!bs.mac) return;
+  const key = uiDevices.map((x) => x.mac + ":" + x.out.length).join(",");
+  if (key !== bs.devKey) {
+    const keep = $("bsDev").value || bs.mac;
+    $("bsDev").innerHTML = uiDevices.map((x) =>
+      `<option value="${x.mac}">${x.mac === bs.mac ? "이 보드" : devName(x.mac)}${x.sim ? " (가상)" : ""} · ${x.mac}</option>`).join("");
+    $("bsDev").value = uiDevices.find((x) => x.mac === keep) ? keep : bs.mac;
+    bs.devKey = key;
+    bsFillOutputs();
+  }
+  const dev = uiDevices.find((x) => x.mac === bs.mac);
+  const s = SENS[bs.ts];
+  const now = dev && dev[bs.ts] !== undefined ? Number(dev[bs.ts]).toFixed(1) + s.unit : "-";
+  $("bsSub").textContent = `${devName(bs.mac)} · ${bs.mac} · JSON "ts":"${bs.ts}" · 지금 ${now}`;
+  const vb = info && info.boards.find((b) => b.mac === bs.mac);
+  $("bsNow").textContent = vb
+    ? `보내는 값 ${now} = 측정값 ${(bs.ts === "temp" ? vb.temp : vb.humi).toFixed(1)} + 보정값 ${vb.cal[bs.ts] >= 0 ? "+" : ""}${vb.cal[bs.ts]}`
+    : `보내는 값 ${now}. 지금 실제 값을 넣으면 그 차이를 보정값으로 저장합니다.`;
+
+  const rows = (dev && dev.bs && dev.bs[bs.ts]) || [];
+  const body = $("bsRows");
+  const rowsKey = JSON.stringify(rows);
+  if (body.dataset.key !== rowsKey) {
+    body.dataset.key = rowsKey;
+    body.innerHTML = rows.length ? "" : `<tr><td colspan="7" class="empty">등록된 트리거가 없습니다.</td></tr>`;
+    for (const r of rows) {
+      const p = (r.ps && r.ps[0]) || {};
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${r.sI}</td><td>${r.tr ? "⬆️ 올라갈 때" : "⬇️ 내려갈 때"}</td><td>${r.tv}${s.unit}</td>
+        <td>${r.d > 0 ? r.d + "초" : "-"}</td><td>${r.du > 0 ? r.du + "초" : "계속"}</td><td class="mono"></td>
+        <td><button class="bio-del" title="삭제">🗑️</button></td>`;
+      tr.querySelector(".mono").textContent =
+        `${p.m === bs.mac ? "이 보드" : devName(p.m)} 스위치 ${(p.n ?? 0) + 1} ${onoff(p.v)}`;
+      tr.querySelector(".bio-del").onclick = () => {
+        sendCmd({ c: "bs", o: "delete", m: bs.mac, ts: bs.ts, sI: r.sI });
+        bsMsg(`${r.sI}번을 지웠습니다.`);
+        setTimeout(bsAsk, 500);
+      };
+      body.appendChild(tr);
+    }
+  }
+  if (dev && dev.err && dev.err.re === "bs" && dev.err.at * 1000 > bs.errAt) {
+    bs.errAt = dev.err.at * 1000;
+    const why = { bad_n: "없는 출력 번호입니다", bad_v: "값이 올바르지 않습니다", bad_ts: "없는 센서입니다",
+                  full: "트리거가 너무 많습니다", bad_si: "그 번호의 트리거가 없습니다",
+                  unknown: "이 보드는 센서 트리거를 지원하지 않습니다 (시뮬레이터를 다시 켜 보세요)" }[dev.err.code];
+    bsMsg(`보드가 거절했습니다: ${why || dev.err.code}`, true);
+  }
+}
+
+$("bsDev").onchange = bsFillOutputs;
+$("bsView").onclick = () => { bsMsg(""); bsAsk(); };
+$("bsClose").onclick = bsClose;
+$("bsOverlay").onclick = (e) => { if (e.target === $("bsOverlay")) bsClose(); };
+$("bsClear").onclick = () => {
+  if (!confirm(`${SENS[bs.ts].name} 트리거를 모두 지울까요?`)) return;
+  sendCmd({ c: "bs", o: "deleteAll", m: bs.mac, ts: bs.ts });
+  bsMsg("모두 지웠습니다.");
+  setTimeout(bsAsk, 500);
+};
+$("bsAdd").onclick = async () => {
+  const num = (id) => { const v = $(id).value.trim(); return v === "" ? 0 : Number(v); };
+  if ($("bsTv").value.trim() === "" || !Number.isFinite(Number($("bsTv").value))) {
+    return bsMsg("기준값을 넣어 주세요.", true);
+  }
+  const d = num("bsD"), du = num("bsDu");
+  if (![d, du].every((x) => Number.isInteger(x) && x >= 0 && x <= 86400)) {
+    return bsMsg("지연과 동작 시간은 0~86400 사이의 정수(초)로 넣어 주세요.", true);
+  }
+  if (!$("bsDev").value || $("bsOut").value === "") return bsMsg("동작할 보드와 출력을 고르세요.", true);
+  const cmd = { c: "bs", o: "insert", m: bs.mac, ts: bs.ts, tr: +$("bsTr").value, tv: Number($("bsTv").value), d, du,
+                ps: [{ m: $("bsDev").value, n: +$("bsOut").value, v: +$("bsV").value }] };
+  const r = await sendCmd(cmd);
+  if (!r.ok) return bsMsg("보내지 못했습니다. 시뮬레이터 연결을 확인하세요.", true);
+  bsMsg("등록했습니다. 목록을 다시 불러옵니다.");
+  setTimeout(bsAsk, 600);   // 실제 보드는 insert에 답하지 않으므로 목록으로 확인한다
+};
+$("bsCalSave").onclick = async () => {
+  const v = $("bsCal").value.trim();
+  if (v === "" || !Number.isFinite(Number(v))) return bsMsg("보정할 현재 값을 넣어 주세요.", true);
+  const r = await sendCmd({ c: "bs", o: "cali", m: bs.mac, ts: bs.ts, v: Number(v) });
+  if (!r.ok) return bsMsg("보내지 못했습니다.", true);
+  bsMsg(`보정했습니다. 이제 ${SENS[bs.ts].name}가 ${v}${SENS[bs.ts].unit}로 보입니다.`);
+};
+
+// 가상 보드 카드: 센서 규칙
+function renderSensorRules(b) {
+  const box = $("srules" + b.index);
+  const key = JSON.stringify(b.srules);
+  if (box.dataset.key === key) return;
+  box.dataset.key = key;
+  if (!b.srules.length) { box.innerHTML = `<span class="none">없음</span>`; return; }
+  box.innerHTML = "";
+  for (const r of b.srules) {
+    const row = document.createElement("div");
+    const s = SENS[r.ts] || { name: r.ts, unit: "" };
+    const target = r.m === b.mac ? "" : devName(r.m) + " ";
+    let text = `${r.sI}. ${s.name} ${r.tr ? "≥" : "≤"} ${r.tv}${s.unit} → ${target}OUT${r.n + 1} ${onoff(r.v)}`;
+    if (r.d) text += ` (${r.d}초 뒤)`;
+    if (r.du) text += ` ${r.du}초 동안`;
+    row.textContent = text;
+    if (r.wait !== null) {
+      const w = document.createElement("span");
+      w.className = "wait";
+      w.textContent = ` · ${r.wait}초 남음`;
+      row.appendChild(w);
+    }
+    box.appendChild(row);
+  }
+}
+
+// 가상 보드 카드: 이 보드의 시간표
+function renderSlots(b) {
+  const box = $("slots" + b.index);
+  const key = JSON.stringify(b.slots);
+  if (box.dataset.key === key) return;
+  box.dataset.key = key;
+  const lines = [];
+  b.slots.forEach((pin, pi) => pin.forEach((s) =>
+    lines.push(`OUT${pi + 1} ${hms(s.start)} ~ ${hms(s.end)} ${repeatText(s.rm, s.dw)}`)));
+  if (!lines.length) { box.innerHTML = `<span class="none">없음</span>`; return; }
+  box.innerHTML = "";
+  for (const t of lines) { const row = document.createElement("div"); row.textContent = t; box.appendChild(row); }
+}
+
+// 가상 보드 카드: 이 보드에 들어 있는 규칙
+function renderRules(b) {
+  const box = $("rules" + b.index);
+  const key = JSON.stringify(b.rules);
+  if (box.dataset.key === key) return;
+  box.dataset.key = key;
+  if (!b.rules.length) { box.innerHTML = `<span class="none">없음</span>`; return; }
+  box.innerHTML = "";
+  for (const r of b.rules) {
+    const row = document.createElement("div");
+    const target = r.m === b.mac ? "" : devName(r.m) + " ";
+    let text = `${r.sI}. IN${r.port + 1} ${onoff(r.tr)} → ${target}OUT${r.n + 1} ${onoff(r.v)}`;
+    if (r.d) text += ` (${r.d}초 뒤)`;
+    if (r.du) text += ` ${r.du}초 동안`;
+    row.textContent = text;
+    if (r.wait !== null) {
+      const w = document.createElement("span");
+      w.className = "wait";
+      w.textContent = ` · ${r.wait}초 남음`;
+      row.appendChild(w);
+    }
+    box.appendChild(row);
+  }
+}
+
+$("uiSel").onchange = () => { uiMac = $("uiSel").value; for (const k in pending) delete pending[k]; uiRefresh(); };
+uiRefresh();
+setInterval(uiRefresh, 500);
+
+refresh();
+setInterval(refresh, 500);
+</script>
+</body>
+</html>

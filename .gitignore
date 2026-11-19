@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 비밀 값 (비밀번호, 인증서, 개인 서버 설정은 올리지 않음)
+secrets*.py
+secrets*.json
+secrets.h
+.env
+.env.*
+*.pem
+*.key
+*.crt
+
+# 편집기, OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
