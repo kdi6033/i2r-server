@@ -59,6 +59,13 @@
   button.badge.broker { border: 1px solid var(--line); cursor: pointer; font-size: 12px; }
   button.badge.broker:hover { border-color: var(--accent); color: var(--accent); }
   .srv-note { font-size: 12px; color: var(--sub); margin: 8px 0 0; line-height: 1.6; }
+  .usb-steps { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.8; }
+  .usb-steps li.done { color: var(--sub); }
+  .usb-steps li.now { font-weight: 600; }
+  .usb-steps li.bad { color: var(--warn); font-weight: 600; }
+  .usb-found { font: 13px/1.7 ui-monospace, Consolas, monospace; background: var(--code); border-radius: 10px;
+               padding: 10px 12px; margin-top: 10px; white-space: pre; overflow-x: auto; }
+  .usb-found[hidden] { display: none; }
   .ui-note { font-size: 12px; color: var(--sub); margin: -4px 0 10px; }
   .ui-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: stretch; }
   @media (max-width: 760px) { .ui-grid { grid-template-columns: 1fr; } }
@@ -244,6 +251,21 @@
     <div class="bio-actions">
       <button class="primary" id="srvGo">바꾸기</button>
       <button id="srvClose">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="bio-overlay" id="usbOverlay" hidden>
+  <div class="bio-modal" role="dialog" aria-modal="true" aria-labelledby="usbTitle">
+    <h3 id="usbTitle">🔌 USB로 실제 보드 찾기</h3>
+    <div class="sub">보드를 USB로 연결하고, Arduino 시리얼 모니터와 i2r.link 웹은 닫아 두세요. 읽을 때 보드가 한 번 다시 시작합니다 (출력은 모두 꺼짐).</div>
+    <h4>진행</h4>
+    <ol class="usb-steps" id="usbSteps"></ol>
+    <div class="usb-found" id="usbFound" hidden></div>
+    <div class="bio-msg" id="usbMsg"></div>
+    <div class="bio-actions">
+      <button class="primary" id="usbGo">COM 포트 고르고 찾기</button>
+      <button id="usbClose">닫기</button>
     </div>
   </div>
 </div>
@@ -531,7 +553,9 @@ async function uiRefresh() {
   const sel = $("uiSel");
   const want = usable.map((d) => d.mac).join(",");
   if (sel.dataset.list !== want) {
-    sel.innerHTML = usable.map((d) => `<option value="${d.mac}">${d.mac}${d.sim ? " (가상)" : ""} ${d.t || ""}</option>`).join("");
+    sel.innerHTML = (usable.length ? "" : `<option value="">보드를 찾는 중...</option>`)
+      + usable.map((d) => `<option value="${d.mac}">${d.mac}${d.sim ? " (가상)" : ""} ${d.t || ""}</option>`).join("")
+      + `<option value="${USB_PICK}">🔌 USB로 실제 보드 찾기...</option>`;
     sel.dataset.list = want;
     if (!usable.find((d) => d.mac === uiMac)) uiMac = usable.length ? usable[0].mac : null;
     sel.value = uiMac || "";
@@ -645,6 +669,7 @@ document.addEventListener("keydown", (e) => {
   if (sch.mac) schClose();
   if (bs.mac) bsClose();
   srvClose();
+  usbClose();
 });
 $("bioClear").onclick = () => {
   if (!confirm(`입력 ${bio.port + 1}의 규칙을 모두 지울까요?`)) return;
@@ -994,7 +1019,178 @@ $("srvGo").onclick = srvGo;
 $("srvClose").onclick = srvClose;
 $("srvOverlay").onclick = (e) => { if (e.target === $("srvOverlay")) srvClose(); };
 
-$("uiSel").onchange = () => { uiMac = $("uiSel").value; for (const k in pending) delete pending[k]; uiRefresh(); };
+// ---- USB로 실제 보드 찾기 (Web Serial: Chrome, Edge) ----
+// 보드(I2R_IoT 02_SimCheck)를 리셋하고 시작 메시지에서 보드 종류, MAC, 서버, 그룹만 읽는다.
+// 시리얼 원문은 화면에 보여 주지 않는다 (예전 펌웨어는 Wi-Fi 비밀번호를 출력한다).
+const USB_PICK = "__usb__";
+const USB_VIDS = [0x1a86, 0x10c4, 0x0403, 0x303a];   // CH340(i2r 보드), CP210x, FTDI, ESP32 USB
+const sleepMs = (ms) => new Promise((r) => setTimeout(r, ms));
+const USB_STEPS = ["COM 포트 고르기", "보드 시작 메시지 읽기 (최대 8초)", "시뮬레이터를 보드와 같은 서버, 그룹으로",
+                   "보드가 나타나면 고르기 (Wi-Fi, MQTT 접속을 기다림, 최대 30초)"];
+let usbBusy = false;
+
+// at: 지금 단계 번호, bad: 그 단계가 실패했을 때 보여 줄 글
+function usbStep(at, bad) {
+  $("usbSteps").innerHTML = USB_STEPS.map((t, i) => {
+    if (i < at) return `<li class="done">✓ ${t}</li>`;
+    if (i === at) return bad ? `<li class="bad">✗ ${bad}</li>` : `<li class="now">${t}</li>`;
+    return bad ? "" : `<li>${t}</li>`;
+  }).join("");
+}
+function usbMsg(text, bad) {
+  $("usbMsg").textContent = text;
+  $("usbMsg").className = "bio-msg" + (bad ? " bad" : "");
+}
+function usbOpen() {
+  $("usbFound").hidden = true;
+  usbStep(0);
+  if (navigator.serial) usbMsg("");
+  else usbMsg("이 브라우저는 USB(Web Serial)를 쓸 수 없습니다. Chrome이나 Edge로 http://localhost 화면을 여세요.", true);
+  $("usbGo").disabled = !navigator.serial;
+  $("usbOverlay").hidden = false;
+}
+function usbClose() { if (!usbBusy) $("usbOverlay").hidden = true; }
+
+function usbParse(text) {
+  const r = {};
+  const MAC = "([0-9A-Fa-f]{2}(?::[0-9A-Fa-f]{2}){5})";
+  let m = text.match(new RegExp("보드 (i2r-0\\d), MAC " + MAC));
+  if (m) { r.kind = m[1]; r.mac = m[2].toUpperCase(); }
+  m = text.match(/서버 ([A-Za-z0-9.-]+):(\d+), 토픽 i2r\/([A-Za-z0-9_-]+)\/in/);
+  if (m) { r.server = m[1]; r.port = Number(m[2]); r.group = m[3]; }
+  if (/I2R_IoT 02_SimCheck/.test(text)) r.simcheck = true;
+  if (/Wi-Fi 설정이 없습니다/.test(text)) r.noWifi = true;
+  if (/MQTT 서버 설정이 없습니다/.test(text)) r.noMqtt = true;
+  if (/Starting board-i2r|wifi\.mqttBroker/.test(text)) r.oldFw = true;
+  if (!r.mac) {   // 예전 펌웨어 등: MAC만이라도
+    m = text.match(new RegExp("MAC Address: " + MAC));
+    if (m) r.mac = m[1].toUpperCase();
+  }
+  return r;
+}
+
+async function usbRead(port) {
+  await port.open({ baudRate: 115200 });
+  const dec = new TextDecoderStream();
+  const piped = port.readable.pipeTo(dec.writable).catch(() => {});
+  const reader = dec.readable.getReader();
+  let text = "";
+  try {
+    // RTS로 리셋 (Arduino IDE, esptool과 같은 방법)
+    await port.setSignals({ dataTerminalReady: false, requestToSend: true });
+    await sleepMs(150);
+    await port.setSignals({ requestToSend: false });
+    const end = Date.now() + 8000;
+    while (Date.now() < end) {
+      const res = await Promise.race([reader.read(), sleepMs(end - Date.now()).then(() => ({ timeout: true }))]);
+      if (res.timeout || res.done) break;
+      text += res.value;
+      if (text.length > 20000) text = text.slice(-20000);
+      const r = usbParse(text);
+      if (r.mac && (r.group || r.noWifi || r.noMqtt || r.oldFw)) { await sleepMs(300); break; }
+    }
+  } finally {
+    try { await reader.cancel(); } catch (e) {}
+    await piped;
+    try { await port.close(); } catch (e) {}
+  }
+  return usbParse(text);
+}
+
+function usbShow(r) {
+  const rows = [["보드", r.kind || "?"], ["MAC ", r.mac || "?"]];
+  if (r.server) rows.push(["서버", `${r.server}:${r.port}`], ["그룹", r.group]);
+  $("usbFound").textContent = rows.map(([k, v]) => `${k}  ${v}`).join("\n");
+  $("usbFound").hidden = false;
+}
+
+async function usbGo() {
+  if (usbBusy) return;
+  let port;
+  try {
+    port = await navigator.serial.requestPort({ filters: USB_VIDS.map((v) => ({ usbVendorId: v })) });
+  } catch (e) {
+    usbMsg("포트를 고르지 않았습니다. 목록에 없으면 USB 케이블(충전 전용이 아닌지)과 CH340 드라이버를 확인하세요.", true);
+    return;
+  }
+  usbBusy = true;
+  $("usbGo").disabled = true;
+  $("usbFound").hidden = true;
+  usbMsg("");
+  try {
+    usbStep(1);
+    let r;
+    try {
+      r = await usbRead(port);
+    } catch (e) {
+      usbStep(1, "포트를 열 수 없습니다");
+      usbMsg("Arduino 시리얼 모니터, i2r.link 웹처럼 COM 포트를 쓰는 프로그램을 닫고 다시 누르세요.", true);
+      return;
+    }
+    if (!r.mac) {
+      usbStep(1, "보드 메시지를 읽지 못했습니다");
+      usbMsg("보드 전원과 포트를 확인하고 다시 누르세요.", true);
+      return;
+    }
+    usbShow(r);
+    if (r.oldFw || !r.simcheck) {
+      usbStep(2, "i2r 프로토콜 펌웨어(02_SimCheck)가 아닙니다");
+      usbMsg("예전 i2r.link 펌웨어 같은 다른 프로그램이 들어 있습니다. Claude Code에 \"연결했어 프로그램 다운로드 해줘\"라고 하거나 README의 방법 B로 올리세요.", true);
+      return;
+    }
+    if (!r.group) {
+      usbStep(2, r.noWifi ? "보드에 Wi-Fi 설정이 없습니다" : "보드에 MQTT 서버 설정이 없습니다");
+      usbMsg(r.noWifi
+        ? "i2r.link 웹(연결 → COM 포트) 또는 send-si.ps1로 Wi-Fi와 서버를 보낸 뒤 다시 누르세요. i2r.link 웹에서는 Email을 비우고 Broker에 서버 주소(예: broker.emqx.io)를 넣습니다."
+        : "i2r.link 웹의 Broker 칸에 broker.emqx.io 같은 서버를 넣어 다시 보낸 뒤 다시 누르세요.", true);
+      return;
+    }
+    usbStep(2);
+    if (!info || info.server !== r.server || info.port !== r.port || info.group !== r.group) {
+      const res = await fetch("/api/server", { method: "POST", headers: { "Content-Type": "application/json" },
+                                               body: JSON.stringify({ server: r.server, port: r.port, group: r.group }) });
+      const j = await res.json();
+      if (!j.ok) {
+        usbStep(2, "시뮬레이터 서버를 바꾸지 못했습니다");
+        usbMsg(j.error || "", true);
+        return;
+      }
+      await refresh();
+    }
+    usbStep(3);
+    const end = Date.now() + 30000;
+    let found = null;
+    while (Date.now() < end && !found) {
+      await sleepMs(1000);
+      await uiRefresh();
+      found = uiDevices.find((d) => d.mac.toUpperCase() === r.mac);
+    }
+    if (!found) {
+      usbStep(3, "보드가 나타나지 않았습니다");
+      usbMsg("보드가 서버에 접속하지 못했습니다. 공유기 이름·비밀번호, 2.4GHz 공유기인지 확인하세요. 접속되면 목록에 저절로 나타납니다.", true);
+      return;
+    }
+    uiMac = found.mac;
+    for (const k in pending) delete pending[k];
+    $("uiSel").value = uiMac;
+    await uiRefresh();
+    usbStep(4);
+    usbMsg(`✅ ${found.mac} (${r.kind})를 골랐습니다. 이제 스위치를 누르면 실제 릴레이가 움직입니다.`);
+  } finally {
+    usbBusy = false;
+    $("usbGo").disabled = !navigator.serial;
+  }
+}
+$("usbGo").onclick = usbGo;
+$("usbClose").onclick = usbClose;
+$("usbOverlay").onclick = (e) => { if (e.target === $("usbOverlay")) usbClose(); };
+
+$("uiSel").onchange = () => {
+  const v = $("uiSel").value;
+  if (v === USB_PICK) { $("uiSel").value = uiMac || ""; usbOpen(); return; }
+  if (!v) return;
+  uiMac = v; for (const k in pending) delete pending[k]; uiRefresh();
+};
 uiRefresh();
 setInterval(uiRefresh, 500);
 

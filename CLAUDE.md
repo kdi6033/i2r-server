@@ -64,6 +64,7 @@ python sim.py --server test.mosquitto.org --boards 2
 | 제어 화면의 "스위치 N" 이름 | 시간표 (`sch`) |
 | 온도, 습도 카드 | 센서 트리거와 보정 (`bs`) |
 | 오른쪽 위 "브로커" | MQTT 서버와 그룹 바꾸기 (`POST /api/server`, 아이디가 있는 서버는 안 됨) |
+| 보드 목록의 "🔌 USB로 실제 보드 찾기" | 브라우저(Web Serial)가 보드를 리셋해 시작 메시지에서 MAC, 서버, 그룹을 읽고, 서버를 맞춘 뒤 그 보드를 고름. 02_SimCheck가 있어야 함 |
 
 ## 4. 프로토콜 시험
 
