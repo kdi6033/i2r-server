@@ -78,6 +78,32 @@ python test_protocol.py --server test.mosquitto.org --group sim-xxxx --mac 02:..
 - 출력을 켜고 끄므로, **릴레이에 아무것도 연결하지 않은 상태**인지 먼저 확인합니다.
 - 보드의 그룹과 MAC은 사용자에게 받습니다(보드 시리얼 출력에 나옵니다).
 
+## 4.1 실제 보드에 프로그램 다운로드 ("연결했어 프로그램 다운로드 해줘")
+
+사용자가 이렇게 말하면 I2R_IoT 예제 `02_SimCheck`를 USB로 연결된 보드에 올립니다. 이 말이 곧 동의이므로 따로 묻지 않고 진행하되, "보드에 있던 프로그램은 지워집니다"를 한 줄로 알립니다.
+
+1. **보드 종류**: 말하지 않았으면 **i2r-03**(기본). "i2r-02로", "i2r-04로"라고 하면 그 보드.
+2. **포트 찾기**: Windows는 `Get-PnpDevice -Class Ports -PresentOnly`에서 `CH340`이 들어간 COM 포트. 없으면 USB 케이블(충전 전용이 아닌지)과 CH340 드라이버를 안내하고 멈춥니다. 여러 개면 사용자에게 묻습니다.
+3. **arduino-cli**: PATH에 없으면 Arduino IDE 안의 것(`C:\Program Files\Arduino IDE\resources\app\lib\backend\resources\arduino-cli.exe`)을 씁니다. 둘 다 없으면 `winget install -e --id ArduinoSA.CLI`로 설치합니다.
+4. **보드 패키지와 라이브러리** (없을 때만 설치):
+   ```
+   arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+   arduino-cli lib install I2R_IoT I2R_PLC PubSubClient ArduinoJson
+   ```
+5. **스케치**: 라이브러리 폴더의 `I2R_IoT/examples/02_SimCheck`. i2r-03이면 그대로 씁니다. 다른 보드면 **임시 폴더로 복사**한 뒤 `I2R_PLC plc(I2R_03);` 한 줄만 `I2R_02` 또는 `I2R_04`로 바꿉니다. 라이브러리 원본은 고치지 않습니다.
+6. **컴파일과 업로드**:
+   ```
+   arduino-cli compile --fqbn esp32:esp32:esp32:FlashSize=8M,PartitionScheme=huge_app <스케치>
+   arduino-cli upload -p <COM> --fqbn esp32:esp32:esp32:FlashSize=8M,PartitionScheme=huge_app <스케치>
+   ```
+   포트를 쓸 수 없다고 나오면 시리얼 모니터(Arduino IDE, i2r.link 웹)를 닫아 달라고 합니다.
+7. **확인**: 시리얼(115200)을 10초쯤 읽어 `==== I2R_IoT 02_SimCheck ====`, 보드 종류, MAC을 확인합니다 (PowerShell `System.IO.Ports.SerialPort`, RTS로 리셋). 읽은 뒤 포트를 반드시 닫습니다.
+   - 시리얼 출력에 Wi-Fi 비밀번호 같은 값이 보이면(예전 펌웨어) **옮겨 적지 않습니다.**
+8. **다음 안내**: Wi-Fi와 MQTT 서버는 **사용자가 직접** 넣게 합니다 (README "실제 보드 연결하기" 방법 B 2번: `send-si.ps1` 또는 i2r.link 웹. 웹에서는 Email 비우고 Broker에 시뮬레이터와 같은 서버). 비밀번호를 채팅으로 받지 않습니다.
+9. 사용자가 "설정 보냈어"라고 하면 시리얼에서 서버, 그룹(따로 정하지 않았으면 MAC에서 `:`를 뺀 소문자)을 확인하고, 같은 서버와 `--group <보드의 그룹>`으로 시뮬레이터를 켜고(이미 켜져 있으면 그것을 끄고 다시 켤지 묻기), 4장대로 시험합니다.
+   - `02_SimCheck`에는 아직 `bio`, `sch`, `bs`가 없어 그 시험은 실패가 정상이라고 함께 알려 줍니다.
+   - 실제 보드의 MAC과 그룹은 대화에서만 쓰고 파일에 적지 않습니다.
+
 ## 5. 끄기, 다시 켜기
 
 - 끄기: 백그라운드로 켠 작업을 멈춥니다. 사용자가 직접 켠 창이면 그 창에서 Ctrl+C 또는 창 닫기를 안내합니다.
