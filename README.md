@@ -160,7 +160,7 @@ Claude Code(VS Code)에 이렇게 말합니다.
 연결했어 프로그램 다운로드 해줘
 ```
 
-Claude가 보드 포트(CH340)를 찾고, 필요한 도구와 라이브러리를 설치하고, `02_SimCheck`를 컴파일해서 보드에 올립니다. 그다음 시리얼에서 보드의 MAC과 그룹을 읽어 알려 줍니다.
+Claude가 보드 포트(CH340)를 찾고, 필요한 도구와 라이브러리를 설치하고, `02_PLC_Simulator`를 컴파일해서 보드에 올립니다. 그다음 시리얼에서 보드의 MAC과 그룹을 읽어 알려 줍니다.
 
 - 보드는 **i2r-03이 기본**입니다. 다른 보드면 "연결했어 i2r-02로 프로그램 다운로드 해줘"처럼 보드 이름을 넣습니다.
 - 보드에 있던 프로그램(예전 i2r.link 공식 펌웨어 포함)은 지워집니다.
@@ -177,7 +177,7 @@ Claude가 보드 포트(CH340)를 찾고, 필요한 도구와 라이브러리를
 
 **1. 보드에 i2r 프로토콜 펌웨어 올리기**
 
-[I2R_IoT](https://github.com/kdi6033/I2R_IoT)의 예제 `02_SimCheck`를 올립니다 (Arduino IDE: 파일 → 예제 → I2R_IoT → 02_SimCheck).
+[I2R_IoT](https://github.com/kdi6033/I2R_IoT)의 예제 `02_PLC_Simulator`를 올립니다 (Arduino IDE: 파일 → 예제 → I2R_IoT → 02_PLC_Simulator).
 보드 설정은 i2r-plc 키트와 같습니다 (ESP32 Dev Module, Flash 8MB, Partition Huge APP). 파일 맨 위 `I2R_PLC plc(I2R_03);`을 내 보드에 맞춥니다.
 
 - 예전 i2r.link 공식 펌웨어(`board-i2r-0x`)는 지워집니다. 공식 펌웨어는 i2r.link 서버 전용이라 이 시뮬레이터와 시험에는 쓸 수 없습니다.
@@ -216,7 +216,7 @@ USB를 뽑으면 약 45초 안에 "오프라인"으로 바뀝니다.
 python test_protocol.py --server broker.emqx.io --group <보드의 그룹> --mac <보드의 MAC>
 ```
 
-- `02_SimCheck`는 지금 `gs`, `so`, `st`와 오류 답까지 만들어져 있습니다. 입력 규칙(`bio`), 시간표(`sch`), 센서(`bs`) 시험은 `err unknown`으로 실패하는 것이 정상입니다 (다음 단계에서 넣습니다).
+- `02_PLC_Simulator`는 지금 `gs`, `so`, `st`와 오류 답까지 만들어져 있습니다. 입력 규칙(`bio`), 시간표(`sch`), 센서(`bs`) 시험은 `err unknown`으로 실패하는 것이 정상입니다 (다음 단계에서 넣습니다).
 - 시험은 보드의 규칙 목록을 지우고(`deleteAll`) 온도 보정을 바꿉니다. 필요한 규칙은 미리 적어 둡니다.
 - 공개 서버에서는 그룹과 MAC을 아는 사람이 보드에 명령을 보낼 수 있습니다. **실제 보드의 그룹과 MAC을 공개된 곳에 적지 않습니다.**
 
@@ -234,7 +234,7 @@ Claude도 Arduino도 없이, 켜 둔 시뮬레이터 화면(Chrome, Edge)에서 
 5. 창 아래 **시리얼 모니터**에 보드 메시지가 아두이노 시리얼 모니터처럼 나옵니다 (쓰기 진행, Wi-Fi·MQTT 접속). 비밀번호, 이메일은 `***`로 가립니다.
    보드 LED가 **계속 켜져 있으면** 접속 중, **1초에 한 번 깜박이면** Wi-Fi와 MQTT 모두 접속된 것입니다.
 
-- 프로그램 파일은 [sim/firmware/](sim/firmware/)에 있습니다 (I2R_IoT `02_SimCheck`, i2r-02/03/04). 라이브러리가 바뀌면 `python sim/firmware/build_firmware.py`로 다시 만듭니다.
+- 프로그램 파일은 [sim/firmware/](sim/firmware/)에 있습니다 (I2R_IoT `02_PLC_Simulator`, i2r-02/03/04). 라이브러리가 바뀌면 `python sim/firmware/build_firmware.py`로 다시 만듭니다.
 - 쓰기 도구(esptool-js)를 인터넷에서 불러오므로 처음 쓸 때 인터넷이 필요합니다.
 
 ## ✅ 라이선스

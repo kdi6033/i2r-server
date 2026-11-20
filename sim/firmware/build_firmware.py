@@ -1,4 +1,4 @@
-"""가상보드 프로그램(I2R_IoT 02_SimCheck)을 i2r-02/03/04용 .bin으로 만든다.
+"""가상보드 프로그램(I2R_IoT 02_PLC_Simulator)을 i2r-02/03/04용 .bin으로 만든다.
 
 시뮬레이터 화면의 "🔌 USB로 실제 보드 찾기 → 가상보드 프로그램 다운로드"가 이 파일들을 브라우저로 보드에 쓴다.
 I2R_IoT나 I2R_PLC 라이브러리가 바뀌면 이 스크립트를 다시 돌리고 커밋한다.
@@ -21,7 +21,7 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FQBN = "esp32:esp32:esp32:FlashSize=8M,PartitionScheme=huge_app"
-SKETCH = "02_SimCheck"
+SKETCH = "02_PLC_Simulator"
 KINDS = {"i2r-02": "I2R_02", "i2r-03": "I2R_03", "i2r-04": "I2R_04"}
 BOARD_LINE = "I2R_PLC plc(I2R_03);"
 # ESP32(클래식)의 쓰는 위치. 0x9000 ~ 0xDFFF(NVS: Wi-Fi 설정)는 쓰지 않으므로 설정이 남는다

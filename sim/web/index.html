@@ -283,7 +283,7 @@
       </div>
     </div>
     <p class="srv-note">
-      <b>가상보드 프로그램 다운로드</b>: I2R_IoT 02_SimCheck를 쓰고(1분쯤), 이어서 위 정보를 보드에 넣습니다. 보드에 있던 프로그램(예전 i2r.link 펌웨어 포함)은 지워집니다. SSID를 비우면 보드에 있던 Wi-Fi 설정을 그대로 씁니다.<br>
+      <b>가상보드 프로그램 다운로드</b>: I2R_IoT 02_PLC_Simulator를 쓰고(1분쯤), 이어서 위 정보를 보드에 넣습니다. 보드에 있던 프로그램(예전 i2r.link 펌웨어 포함)은 지워집니다. SSID를 비우면 보드에 있던 Wi-Fi 설정을 그대로 씁니다.<br>
       <b>프로그램 다운로드 없이 정보만 입력</b>: 가상보드 프로그램이 이미 있는 보드에 Wi-Fi, 서버만 넣습니다.<br>
       비밀번호는 USB로 <b>보드에만</b> 보냅니다. 시뮬레이터나 인터넷으로 보내지 않고, 이 화면에도 남기지 않습니다.
       Broker에는 지금 시뮬레이터 서버가 들어 있습니다 (시뮬레이터와 같아야 화면에 나타납니다).</p>
@@ -1252,7 +1252,7 @@ function usbParse(text) {
   if (m) { r.kind = m[1]; r.mac = m[2].toUpperCase(); }
   m = text.match(/서버 ([A-Za-z0-9.-]+):(\d+), 토픽 i2r\/([A-Za-z0-9_-]+)\/in/);
   if (m) { r.server = m[1]; r.port = Number(m[2]); r.group = m[3]; }
-  if (/I2R_IoT 02_SimCheck/.test(text)) r.simcheck = true;
+  if (/I2R_IoT 02_(PLC_Simulator|SimCheck)/.test(text)) r.simcheck = true;   // 예전 이름 02_SimCheck도
   if (/Wi-Fi 설정이 없습니다/.test(text)) r.noWifi = true;
   if (/MQTT 서버 설정이 없습니다/.test(text)) r.noMqtt = true;
   if (/Starting board-i2r|wifi\.mqttBroker/.test(text)) r.oldFw = true;
@@ -1308,7 +1308,7 @@ async function usbFinish(r) {
   }
   usbShow(r);
   if (r.oldFw || !r.simcheck) {
-    usbStep(2, "가상보드 프로그램(02_SimCheck)이 아닙니다");
+    usbStep(2, "가상보드 프로그램(02_PLC_Simulator)이 아닙니다");
     usbMsg("보드에 다른 프로그램(예전 i2r.link 펌웨어 등)이 있습니다. 위의 가상보드 프로그램 다운로드를 누르세요.", true);
     return;
   }

@@ -22,7 +22,7 @@ i2r 보드(IoT PLC i2r-02/03/04, Otto)와 서버, 웹, 시뮬레이터가 MQTT�
 | 구현 | 위치 | 공통(gs, st, lw, hello, err) | so | bio | sch | bs |
 |---|---|:---:|:---:|:---:|:---:|:---:|
 | 시뮬레이터 가상 보드 (정답) | `sim/board.py` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| I2R_IoT 0.2.2 예제 `02_SimCheck` | I2R_IoT `examples/02_SimCheck` | ✅ | ✅ | ❌ `err unknown` | ❌ | ❌ |
+| I2R_IoT 예제 `02_PLC_Simulator` (예전 `02_SimCheck`) | I2R_IoT `examples/02_PLC_Simulator` | ✅ | ✅ | ❌ `err unknown` | ❌ | ❌ |
 | 공식 펌웨어 v2.0 (i2r.link) | i2r-02/03/04 `board-i2r-0x` | 일부 (11장) | ✅ | ✅ | ✅ | ✅ |
 | Otto | otto 키트 | 10장 | | | | |
 
