@@ -3,7 +3,7 @@
   "built": "2026-11-20",
   "fqbn": "esp32:esp32:esp32:FlashSize=8M,PartitionScheme=huge_app",
   "esp32_core": "3.3.12",
-  "I2R_IoT": "0.2.1",
+  "I2R_IoT": "0.2.2",
   "I2R_PLC": "1.0.0",
   "parts": [
     {
@@ -26,17 +26,17 @@
     "i2r-02": {
       "file": "simcheck-i2r-02.bin",
       "addr": 65536,
-      "sha256": "f415708d05a95529865afd32e761d4d27aac5d697ff4cde7ac3f6bb5512e6471"
+      "sha256": "7a8c63a3c380cf66deeed4164ce17fa4a1496fa4844fdf7507b17d5cf32df1df"
     },
     "i2r-03": {
       "file": "simcheck-i2r-03.bin",
       "addr": 65536,
-      "sha256": "bf2ba906cd053731726178cc715f26f29df6827dd1b87f0b0bc77e6be9e4164f"
+      "sha256": "420e2351732c1ab54d1266689a169aa5d94f1485cb27a6c47aa1a30a0202a736"
     },
     "i2r-04": {
       "file": "simcheck-i2r-04.bin",
       "addr": 65536,
-      "sha256": "bf1f5ca098f3701dbeb90437e9766bf548c12a987d32ee47c73ffce3333b49f6"
+      "sha256": "fd4990fa09bd3e554112c595a272ff81ba85f4e0f602b5dbcdebf0db54bf9608"
     }
   }
 }

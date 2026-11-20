@@ -92,10 +92,10 @@ python test_protocol.py --server test.mosquitto.org --group sim-xxxx --mac 02:..
    arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
    arduino-cli lib install I2R_PLC PubSubClient ArduinoJson
    ```
-   **I2R_IoT는 아직 라이브러리 매니저에 등록 중**이라 `lib install I2R_IoT`가 안 됩니다. 먼저 `arduino-cli lib list`에서 I2R_IoT가 0.2.1 이상인지 보고, 없거나 낮을 때만 GitHub 태그로 설치합니다.
+   **I2R_IoT는 아직 라이브러리 매니저에 등록 중**이라 `lib install I2R_IoT`가 안 됩니다. 먼저 `arduino-cli lib list`에서 I2R_IoT가 0.2.2 이상인지 보고, 없거나 낮을 때만 GitHub 태그로 설치합니다.
    ```
    arduino-cli config set library.enable_unsafe_install true
-   arduino-cli lib install --git-url https://github.com/kdi6033/I2R_IoT.git#0.2.1
+   arduino-cli lib install --git-url https://github.com/kdi6033/I2R_IoT.git#0.2.2
    arduino-cli config set library.enable_unsafe_install false
    ```
    - 설치 뒤에는 설정을 다시 `false`로 돌려 놓습니다 (다른 주소의 라이브러리가 몰래 설치되지 않게).
