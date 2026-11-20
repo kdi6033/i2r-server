@@ -90,8 +90,17 @@ python test_protocol.py --server test.mosquitto.org --group sim-xxxx --mac 02:..
 4. **보드 패키지와 라이브러리** (없을 때만 설치):
    ```
    arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
-   arduino-cli lib install I2R_IoT I2R_PLC PubSubClient ArduinoJson
+   arduino-cli lib install I2R_PLC PubSubClient ArduinoJson
    ```
+   **I2R_IoT는 아직 라이브러리 매니저에 등록 중**이라 `lib install I2R_IoT`가 안 됩니다. 먼저 `arduino-cli lib list`에서 I2R_IoT가 0.2.1 이상인지 보고, 없거나 낮을 때만 GitHub 태그로 설치합니다.
+   ```
+   arduino-cli config set library.enable_unsafe_install true
+   arduino-cli lib install --git-url https://github.com/kdi6033/I2R_IoT.git#0.2.1
+   arduino-cli config set library.enable_unsafe_install false
+   ```
+   - 설치 뒤에는 설정을 다시 `false`로 돌려 놓습니다 (다른 주소의 라이브러리가 몰래 설치되지 않게).
+   - I2R_IoT 폴더가 링크(라이브러리를 직접 고치는 PC)이면 다시 설치하지 않습니다.
+   - 등록이 끝나면(`arduino-cli lib search I2R_IoT`에 나오면) 이 단계는 `lib install I2R_IoT` 한 줄로 바꿉니다.
 5. **스케치**: 라이브러리 폴더의 `I2R_IoT/examples/02_SimCheck`. i2r-03이면 그대로 씁니다. 다른 보드면 **임시 폴더로 복사**한 뒤 `I2R_PLC plc(I2R_03);` 한 줄만 `I2R_02` 또는 `I2R_04`로 바꿉니다. 라이브러리 원본은 고치지 않습니다.
 6. **컴파일과 업로드**:
    ```
