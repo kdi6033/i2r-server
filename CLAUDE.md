@@ -139,13 +139,19 @@ python test_protocol.py --server test.mosquitto.org --group sim-xxxx --mac 02:..
 | `sim/sim.py` | 시뮬레이터 실행, 웹 화면(HTTP API) |
 | `sim/board.py` | 가상 보드 (실제 펌웨어와 같은 메시지) |
 | `sim/servers.py` | MQTT 서버 목록과 고르기 메뉴 |
+| `protocol.md` | i2r 통신 프로토콜 원본 (9장) |
 | `sim/test_protocol.py` | 프로토콜 규칙 시험 |
 | `sim/web/index.html` | 제어 화면 |
 | `sim/start-sim.bat` | Windows에서 두 번 눌러 켜기 |
 | `sim/README.md` | 옵션과 메시지 형식 |
 | `sim/firmware/` | 가상보드 프로그램 .bin (I2R_IoT 02_SimCheck, i2r-02/03/04)과 `manifest.json`. I2R_IoT, I2R_PLC가 바뀌면 `python sim/firmware/build_firmware.py`로 다시 만들고 커밋 |
 
-프로토콜 원문은 https://github.com/kdi6033/i2r 의 protocol.md에 있습니다.
+## 9. 프로토콜 (`protocol.md`)
+
+- i2r 통신 프로토콜의 **원본은 이 저장소의 [protocol.md](protocol.md)** 입니다. 다른 저장소는 이 파일을 가리키기만 합니다.
+- 프로토콜을 바꿀 때는 **`protocol.md`, `sim/board.py`, `sim/test_protocol.py`를 한 커밋에서 함께** 고치고, 시뮬레이터로 `test_protocol.py`가 모두 통과하는지 확인한 뒤 올립니다.
+- 필드와 명령은 더하기만 합니다. 지우거나 뜻을 바꾸면 `pv`를 올리고 protocol.md "바뀐 내역"에 적습니다.
+- 사용자 스케치는 JSON을 직접 만들지 않고 라이브러리 함수를 씁니다 (protocol.md 0.1).
 
 
 ## 안내판을 거쳐 왔다면 (처음 한 번 끝날 때)
