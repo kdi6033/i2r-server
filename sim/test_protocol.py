@@ -18,6 +18,8 @@ import uuid
 
 import paho.mqtt.client as mqtt
 
+import servers
+
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -267,12 +269,13 @@ def run(p):
 
 def main():
     ap = argparse.ArgumentParser(description="i2r 프로토콜 규칙 시험")
-    ap.add_argument("--server", default="test.mosquitto.org")
-    ap.add_argument("--port", type=int, default=1883)
+    ap.add_argument("--server", default=None, help="MQTT 서버 (없으면 목록에서 고르기, 입력할 수 없으면 test.mosquitto.org)")
+    ap.add_argument("--port", type=int, default=None)
     ap.add_argument("--group", required=True)
     ap.add_argument("--mac", required=True)
     ap.add_argument("--user", default=None)
     a = ap.parse_args()
+    a.server, a.port, a.user = servers.choose(a.server, a.port, a.user)
     pw = None
     if a.user:
         import getpass

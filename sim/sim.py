@@ -1,6 +1,7 @@
 """i2r 시뮬레이터: 가상 i2r 보드 여러 대 + 웹 화면.
 
-  python sim.py                                   가상 보드 1대, test.mosquitto.org, 화면 http://localhost:8000
+  python sim.py                                   가상 보드 1대, 서버는 목록에서 고르기, 화면 http://localhost:8000
+  python sim.py --server test.mosquitto.org       목록 없이 바로 (Claude, 스크립트는 이렇게)
   python sim.py --boards 3                        3대
   python sim.py --server 192.168.0.50             i2r-05 로컬 서버
   python sim.py --server 내서버 --user 아이디     아이디·비밀번호가 있는 서버 (비밀번호는 묻는다)
@@ -27,9 +28,10 @@ from urllib.parse import urlparse, parse_qs
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from board import VirtualBoard  # noqa: E402
+import servers  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PUBLIC_SERVERS = {"test.mosquitto.org", "broker.emqx.io", "broker.hivemq.com"}
+PUBLIC_SERVERS = servers.PUBLIC_SERVERS
 PUBLIC_MAX = 5
 
 try:
@@ -301,8 +303,8 @@ def make_handler(sim):
 def main():
     ap = argparse.ArgumentParser(description="i2r 시뮬레이터 (가상 i2r 보드 + 웹 화면)")
     ap.add_argument("--boards", type=int, default=1, help="가상 보드 수 (기본 1)")
-    ap.add_argument("--server", default="test.mosquitto.org", help="MQTT 서버 (기본 test.mosquitto.org)")
-    ap.add_argument("--port", type=int, default=1883, help="MQTT 포트 (기본 1883)")
+    ap.add_argument("--server", default=None, help="MQTT 서버 (없으면 목록에서 고르기, 입력할 수 없으면 test.mosquitto.org)")
+    ap.add_argument("--port", type=int, default=None, help="MQTT 포트 (기본 1883)")
     ap.add_argument("--user", default=None, help="MQTT 아이디 (있으면 비밀번호를 묻는다)")
     ap.add_argument("--group", default=None, help="토픽 그룹 (기본: 실행할 때마다 sim-임의코드)")
     ap.add_argument("--kind", default="i2r-03", choices=["i2r-02", "i2r-03", "i2r-04"], help="보드 종류")
@@ -312,6 +314,7 @@ def main():
     ap.add_argument("--no-browser", action="store_true", help="브라우저를 저절로 열지 않기")
     ap.add_argument("--quiet", action="store_true", help="메시지를 터미널에 찍지 않기")
     a = ap.parse_args()
+    a.server, a.port, a.user = servers.choose(a.server, a.port, a.user)
 
     if a.server in PUBLIC_SERVERS and a.boards > PUBLIC_MAX:
         print(f"[시뮬레이터] 공개 서버({a.server})에는 가상 보드를 {PUBLIC_MAX}대까지만 붙입니다. "

@@ -91,8 +91,10 @@ PC에서 **가상 i2r 보드**를 띄웁니다. 실제 보드와 똑같이 MQTT 
 ## 옵션
 
 ```
+python sim.py                                     서버를 목록에서 고르기 (1 test.mosquitto.org, 2 broker.emqx.io, 3 직접 입력)
+python sim.py --server test.mosquitto.org         목록 없이 바로 켜기 (Claude, 스크립트는 이렇게)
 python sim.py --boards 3                          가상 보드 3대 (공개 서버는 5대까지)
-python sim.py --server broker.emqx.io             다른 공개 서버 (test.mosquitto.org가 안 될 때)
+python sim.py --server broker.emqx.io             다른 공개 서버 (test.mosquitto.org가 느리거나 안 될 때)
 python sim.py --server 192.168.0.50               i2r-05 로컬 서버
 python sim.py --server 내서버 --user 아이디       아이디·비밀번호가 있는 서버 (비밀번호는 묻는다)
 python sim.py --kind i2r-04                       i2r-04 (입출력 8개)
@@ -101,15 +103,17 @@ python sim.py --lan                               같은 공유기의 휴대폰�
 python sim.py --no-web                            화면 없이 (자동 시험용)
 ```
 
+- 서버 목록은 `servers.py`에 있습니다. 키보드로 입력할 수 없는 곳(백그라운드 실행)에서는 묻지 않고 1번을 씁니다.
+- 실제 보드와 같이 쓸 때는 보드도 같은 서버여야 합니다 (I2R_IoT `tools/send-si.ps1`).
 - 가상 보드 MAC은 `02:`로 시작합니다. "직접 정한 주소"라 실제 기기와 겹치지 않습니다.
 - 공개 서버에서는 그룹이 실행할 때마다 바뀌어 다른 사람의 가상 보드와 섞이지 않습니다.
 
 ## 규칙 시험
 
-가상 보드와 실제 보드에 똑같이 씁니다 (i2r.md 5.5 규칙).
+가상 보드와 실제 보드에 똑같이 씁니다 (i2r.md 5.5 규칙). `--server`가 없으면 시뮬레이터처럼 서버 목록이 나옵니다.
 
 ```
-python test_protocol.py --server broker.emqx.io --group sim-6194 --mac 02:F1:61:4D:6F:01
+python test_protocol.py --server broker.emqx.io --group sim-xxxx --mac 02:AB:CD:EF:01:01
 ```
 
 | 시험 | 기대 |
