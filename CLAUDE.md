@@ -1,9 +1,11 @@
 # i2r-server: Claude 작업 안내
 
 이 저장소는 i2r 보드(IoT PLC i2r-02/03/04, Otto)와 같은 i2r 프로토콜로 동작하는 서버 쪽 프로그램입니다.
+i2r 전체 안내판(다른 키트, 작업 폴더, i2r 스킬)은 https://raw.githubusercontent.com/kdi6033/i2r/main/AGENTS.md 에 있습니다.
 지금 완성된 것은 `sim/` 시뮬레이터입니다. `local/`, `aws/`, `common/`은 만드는 중이라 아직 없습니다.
 
 사용자는 보통 이렇게 말합니다.
+- "https://github.com/kdi6033/i2r 읽고 i2r 개발을 도와줘. 시뮬레이터 켜 줘" (안내판을 거쳐 옴)
 - "https://github.com/kdi6033/i2r-server 저장소를 이 폴더에 내려받고, 그 안의 CLAUDE.md를 읽은 다음 시뮬레이터를 켜 줘."
 - "시뮬레이터 켜 줘" / "꺼 줘" / "다시 켜 줘" / "프로토콜 시험해 줘" / "최신으로 업데이트해 줘"
 
