@@ -46,7 +46,8 @@ python sim.py --server test.mosquitto.org --boards 2
 - Windows 한글이 깨지면 환경 변수 `PYTHONIOENCODING=utf-8`을 붙여 실행합니다.
 - 아이디가 있는 서버(`--user`)는 비밀번호를 터미널에서 묻기 때문에 Claude가 대신 켤 수 없습니다. 사용자에게 `sim/start-sim.bat --server 주소 --user 아이디`를 직접 실행하도록 안내합니다.
 - 보드 종류: `--kind i2r-02`, `i2r-03`(기본), `i2r-04`(입출력 8개). 공개 서버에는 가상 보드를 5대까지만 붙입니다.
-- 이미 켜져 있으면 8000번 포트 오류가 납니다. 먼저 끄거나 `--http-port 8001`을 씁니다.
+- 켠 뒤 출력에 `화면: http://localhost:...` 줄이 있는지 확인합니다. `포트를 쓸 수 없습니다`가 나오면 **다른 시뮬레이터가 이미 켜져 있는 것**입니다. 그것은 사용자 것일 수 있으니 끄지 말고 `--http-port 8001`로 다시 켭니다.
+- 켜졌는지 확인할 때는 포트만 보지 말고 `curl -s http://localhost:<포트>/api/boards`의 `group`이 방금 켠 그룹과 같은지 봅니다.
 
 켠 뒤 출력에서 다음을 찾아 사용자에게 알려 줍니다.
 - 서버와 그룹 (`가상 보드 N대를 ...에 붙입니다. 그룹 sim-xxxx`)
@@ -107,3 +108,11 @@ python test_protocol.py --server test.mosquitto.org --group sim-xxxx --mac 02:..
 | `sim/README.md` | 옵션과 메시지 형식 |
 
 프로토콜 원문은 https://github.com/kdi6033/i2r 의 protocol.md에 있습니다.
+
+
+## 안내판을 거쳐 왔다면 (처음 한 번 끝날 때)
+
+사용자가 "https://github.com/kdi6033/i2r 읽고 ..."로 시작했거나 작업 폴더 맨 위에 이 키트 폴더가 있다면, 환경 만들기가 끝날 때 아래 두 가지를 **빠뜨리지 말고** 합니다. 자세한 내용은 안내판 원문(`curl -sL https://raw.githubusercontent.com/kdi6033/i2r/main/AGENTS.md`) 4.3장과 6장입니다.
+
+1. 작업 폴더 맨 위에 `CLAUDE.md`(작업 폴더 안내)가 없으면 만듭니다. 받은 키트 폴더와 "먼저 읽을 파일"을 표로 적습니다.
+2. "다음부터 주소 없이 말할 수 있게 이 PC에 i2r 스킬을 설치할까요?"라고 묻고, 좋다고 하면 `https://raw.githubusercontent.com/kdi6033/i2r/main/skills/i2r/SKILL.md`를 사용자 폴더의 `.claude/skills/i2r/SKILL.md`로 받습니다.
