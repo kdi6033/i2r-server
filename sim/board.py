@@ -111,14 +111,29 @@ class VirtualBoard:
         self.pending_id = None               # 명령의 id를 상태에 붙여 돌려줌
         self.lock = threading.RLock()
 
-        self.cli = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=mac)
+        self.cli = self._new_client(user, password)
+
+    def _new_client(self, user, password):
+        cli = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=self.mac)
         if user:
-            self.cli.username_pw_set(user, password or "")
-        self.cli.will_set(self.topic_out, json.dumps({"c": "lw", "fr": mac, "on": 0}), qos=0, retain=False)
-        self.cli.on_connect = self._on_connect
-        self.cli.on_disconnect = self._on_disconnect
-        self.cli.on_message = self._on_message
-        self.cli.reconnect_delay_set(min_delay=2, max_delay=30)
+            cli.username_pw_set(user, password or "")
+        cli.will_set(self.topic_out, json.dumps({"c": "lw", "fr": self.mac, "on": 0}), qos=0, retain=False)
+        cli.on_connect = self._on_connect
+        cli.on_disconnect = self._on_disconnect
+        cli.on_message = self._on_message
+        cli.reconnect_delay_set(min_delay=2, max_delay=30)
+        return cli
+
+    def move(self, server, port, group, user=None, password=None):
+        """다른 MQTT 서버나 그룹으로 옮긴다 (화면에서 서버를 바꿀 때). 입출력, 규칙, 시간표는 그대로 둔다."""
+        self.stop()
+        with self.lock:
+            self.connected = False
+            self.server, self.port, self.group = server, port, group
+            self.topic_in = f"i2r/{group}/in"
+            self.topic_out = f"i2r/{group}/out"
+            self.cli = self._new_client(user, password)
+        self.start()
 
     # ---- 시작, 끝 ----
     def start(self):

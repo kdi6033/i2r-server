@@ -63,6 +63,7 @@ python sim.py --server test.mosquitto.org --boards 2
 | 제어 화면의 "입력 N" | 입력 규칙 (`bio`) |
 | 제어 화면의 "스위치 N" 이름 | 시간표 (`sch`) |
 | 온도, 습도 카드 | 센서 트리거와 보정 (`bs`) |
+| 오른쪽 위 "브로커" | MQTT 서버와 그룹 바꾸기 (`POST /api/server`, 아이디가 있는 서버는 안 됨) |
 
 ## 4. 프로토콜 시험
 

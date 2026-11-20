@@ -18,6 +18,7 @@ import getpass
 import json
 import os
 import random
+import re
 import socket
 import sys
 import threading
@@ -222,6 +223,51 @@ def lan_ip():
         s.close()
 
 
+HOST_RE = re.compile(r"^[A-Za-z0-9.-]{1,253}$")
+GROUP_RE = re.compile(r"^[A-Za-z0-9_-]{1,32}$")   # 토픽에 들어가므로 / + # 은 쓰지 않는다
+
+
+def switch_server(sim, server, port, group):
+    """화면에서 고른 서버, 포트, 그룹으로 가상 보드와 제어 화면을 옮긴다. (ok, 오류 메시지)를 돌려준다."""
+    server = (server or "").strip() if isinstance(server, str) else ""
+    group = (group or "").strip() if isinstance(group, str) else ""
+    if not HOST_RE.match(server):
+        return False, "서버 주소가 올바르지 않습니다 (예: test.mosquitto.org, 192.168.0.50)"
+    try:
+        port = int(port or servers.DEFAULT_PORT)
+    except (TypeError, ValueError):
+        return False, "포트는 숫자입니다 (보통 1883)"
+    if not 1 <= port <= 65535:
+        return False, "포트는 1 ~ 65535 입니다 (보통 1883)"
+    group = group or sim["group"]
+    if not GROUP_RE.match(group):
+        return False, "그룹은 영문, 숫자, -, _ 로 32자까지입니다"
+    if server in PUBLIC_SERVERS and len(sim["boards"]) > PUBLIC_MAX:
+        return False, f"공개 서버에는 가상 보드를 {PUBLIC_MAX}대까지만 붙입니다. 시뮬레이터를 --boards {PUBLIC_MAX} 이하로 다시 켜세요"
+    with sim["switch_lock"]:
+        if (server, port, group) == (sim["server"], sim["port"], sim["group"]):
+            return True, None
+        # 아이디·비밀번호는 처음 켤 때 고른 서버에서만 쓴다 (화면에서는 비밀번호를 받지 않는다)
+        same = server == sim["start_server"] and port == sim["start_port"]
+        user, password = (sim.get("user"), sim.get("password")) if same else (None, None)
+        sim["switching"] = True
+        try:
+            print(f"[시뮬레이터] 서버를 바꿉니다: {sim['server']}:{sim['port']} 그룹 {sim['group']} "
+                  f"→ {server}:{port} 그룹 {group}", flush=True)
+            for b in sim["boards"]:
+                b.move(server, port, group, user, password)
+            sim["server"], sim["port"], sim["group"] = server, port, group
+            if sim.get("ui"):
+                old_ui = sim["ui"]
+                sim["ui"] = UIClient(server, port, group, user, password, sim["log"])
+                old_ui.stop()
+            if server in PUBLIC_SERVERS:
+                print("  공개 서버입니다. 누구나 이 토픽을 볼 수 있으니 개인 정보를 넣지 마세요.", flush=True)
+        finally:
+            sim["switching"] = False
+    return True, None
+
+
 def make_handler(sim):
     index_path = os.path.join(HERE, "web", "index.html")
 
@@ -251,6 +297,8 @@ def make_handler(sim):
                 self.wfile.write(body)
             elif u.path == "/api/boards":
                 self._json({"server": sim["server"], "port": sim["port"], "group": sim["group"],
+                            "choices": [{"server": h, "note": n} for h, n in servers.CHOICES],
+                            "user": bool(sim.get("user")), "switching": sim.get("switching", False),
                             "topic_in": f"i2r/{sim['group']}/in", "topic_out": f"i2r/{sim['group']}/out",
                             "boards": [b.snapshot() for b in sim["boards"]]})
             elif u.path == "/api/devices":
@@ -271,6 +319,12 @@ def make_handler(sim):
                 j = json.loads(self.rfile.read(n).decode("utf-8") or "{}")
             except (ValueError, TypeError):
                 return self._json({"error": "bad request"}, 400)
+            if u.path == "/api/server":
+                # 화면에서 MQTT 서버(와 그룹)를 바꾼다. 가상 보드와 제어 화면을 새 서버로 다시 붙인다
+                ok, msg = switch_server(sim, j.get("server"), j.get("port"), j.get("group"))
+                return self._json({"ok": ok, "error": None if ok else msg,
+                                   "server": sim["server"], "port": sim["port"], "group": sim["group"]},
+                                  200 if ok else 400)
             if u.path == "/api/cmd":
                 # 제어 화면이 보내는 i2r 명령 (그대로 MQTT in 토픽으로)
                 if not sim.get("ui") or not isinstance(j, dict) or not j.get("c"):
@@ -329,7 +383,9 @@ def main():
     log = Log(quiet=a.quiet)
     boards = [VirtualBoard(i + 1, make_mac(prefix, i + 1), group, a.server, a.port, a.user, password,
                            kind=a.kind, ports=ports, log=log) for i in range(a.boards)]
-    sim = {"boards": boards, "log": log, "server": a.server, "port": a.port, "group": group}
+    sim = {"boards": boards, "log": log, "server": a.server, "port": a.port, "group": group,
+           "start_server": a.server, "start_port": a.port, "user": a.user, "password": password,
+           "switch_lock": threading.Lock()}
 
     print(f"[시뮬레이터] 가상 보드 {len(boards)}대를 {a.server}:{a.port}에 붙입니다. 그룹 {group}")
     for b in boards:
