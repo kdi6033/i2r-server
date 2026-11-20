@@ -73,6 +73,10 @@
   .usb-bar { flex: 1; min-width: 120px; height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
   .usb-bar > div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
   .usb-sec { border-top: 1px solid var(--line); margin-top: 14px; }
+  .mon { margin: 0; height: 220px; overflow: auto; background: #0f172a; color: #d1fae5; border-radius: 10px;
+         padding: 10px 12px; font: 12px/1.55 ui-monospace, Consolas, monospace; white-space: pre-wrap; word-break: break-all; }
+  .usb-row button.light { background: var(--card); color: var(--text); border-color: var(--line); }
+  .mon-state { font-size: 12px; color: var(--sub); }
   .ui-note { font-size: 12px; color: var(--sub); margin: -4px 0 10px; }
   .ui-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: stretch; }
   @media (max-width: 760px) { .ui-grid { grid-template-columns: 1fr; } }
@@ -268,36 +272,44 @@
     <div class="sub">보드를 USB로 연결하고, Arduino 시리얼 모니터와 i2r.link 웹은 닫아 두세요. Chrome, Edge에서 됩니다.
       포트는 처음 한 번만 고르면 됩니다. 보드가 다시 시작할 때 출력은 모두 꺼집니다.</div>
 
-    <h4>1. 가상보드 프로그램 다운로드</h4>
+    <h4>1. 보드와 연결 정보</h4>
     <div class="bio-form">
       <label>보드<select id="fwKind"><option>i2r-02</option><option selected>i2r-03</option><option>i2r-04</option></select></label>
+      <label>SSID (공유기 이름, 2.4GHz)<input id="siSsid" autocomplete="off" spellcheck="false"></label>
+      <label>PW (공유기 비밀번호)<input id="siPw" type="password" autocomplete="new-password"></label>
+      <div class="two">
+        <label>Broker (MQTT 서버)<input id="siBroker" autocomplete="off" spellcheck="false"></label>
+        <label>포트<input id="siPort" type="number" min="1" max="65535" value="1883"></label>
+      </div>
     </div>
-    <p class="srv-note" id="fwNote">I2R_IoT 02_SimCheck를 보드에 씁니다. 보드에 있던 프로그램(예전 i2r.link 펌웨어 포함)은 지워지고, Wi-Fi 설정은 남습니다.</p>
-    <div class="usb-row">
+    <p class="srv-note">
+      <b>가상보드 프로그램 다운로드</b>: I2R_IoT 02_SimCheck를 쓰고(1분쯤), 이어서 위 정보를 보드에 넣습니다. 보드에 있던 프로그램(예전 i2r.link 펌웨어 포함)은 지워집니다. SSID를 비우면 보드에 있던 Wi-Fi 설정을 그대로 씁니다.<br>
+      <b>프로그램 다운로드 없이 정보만 입력</b>: 가상보드 프로그램이 이미 있는 보드에 Wi-Fi, 서버만 넣습니다.<br>
+      비밀번호는 USB로 <b>보드에만</b> 보냅니다. 시뮬레이터나 인터넷으로 보내지 않고, 이 화면에도 남기지 않습니다.
+      Broker에는 지금 시뮬레이터 서버가 들어 있습니다 (시뮬레이터와 같아야 화면에 나타납니다).</p>
+    <div class="usb-row" id="fwRow">
       <button id="fwGo">가상보드 프로그램 다운로드</button>
+      <button id="siGo">프로그램 다운로드 없이 정보만 입력</button>
       <div class="usb-bar"><div id="fwBar"></div></div>
     </div>
 
     <div class="usb-sec">
-      <h4>2. 연결 (Wi-Fi, MQTT 서버)</h4>
-      <div class="bio-form">
-        <label>SSID (공유기 이름, 2.4GHz)<input id="siSsid" autocomplete="off" spellcheck="false"></label>
-        <label>PW (공유기 비밀번호)<input id="siPw" type="password" autocomplete="new-password"></label>
-        <div class="two">
-          <label>Broker (MQTT 서버)<input id="siBroker" autocomplete="off" spellcheck="false"></label>
-          <label>포트<input id="siPort" type="number" min="1" max="65535" value="1883"></label>
-        </div>
-      </div>
-      <p class="srv-note">비밀번호는 USB로 <b>보드에만</b> 보냅니다. 시뮬레이터나 인터넷으로 보내지 않고, 이 화면에도 남기지 않습니다.
-        Broker는 지금 시뮬레이터 서버가 들어 있습니다 (시뮬레이터와 같아야 화면에 나타납니다).</p>
-      <div class="usb-row"><button id="siGo">연결</button></div>
+      <h4>2. 보드 찾기</h4>
+      <ol class="usb-steps" id="usbSteps"></ol>
+      <div class="usb-found" id="usbFound" hidden></div>
+      <div class="usb-row" id="findRow"><button id="usbGo">보드 찾기</button></div>
     </div>
 
     <div class="usb-sec">
-      <h4>3. 보드 찾기</h4>
-      <ol class="usb-steps" id="usbSteps"></ol>
-      <div class="usb-found" id="usbFound" hidden></div>
-      <div class="usb-row"><button id="usbGo">보드 찾기</button></div>
+      <h4>시리얼 모니터 (115200)</h4>
+      <pre class="mon" id="mon" aria-live="off"></pre>
+      <div class="usb-row">
+        <button id="monToggle" class="light">보기 시작</button>
+        <button id="monClear" class="light">지우기</button>
+        <span class="mon-state" id="monState"></span>
+      </div>
+      <p class="srv-note">버튼을 누르면 보드 메시지가 여기에 나옵니다 (아두이노 시리얼 모니터와 같음). 비밀번호, 이메일은 <code>***</code>로 가립니다.
+        보는 동안에는 COM 포트를 이 화면이 쓰므로, Arduino IDE로 올리려면 <b>멈춤</b>을 누르거나 창을 닫으세요.</p>
     </div>
 
     <div class="bio-msg" id="usbMsg"></div>
@@ -1057,9 +1069,9 @@ $("srvClose").onclick = srvClose;
 $("srvOverlay").onclick = (e) => { if (e.target === $("srvOverlay")) srvClose(); };
 
 // ---- USB로 실제 보드 연결 (Web Serial: Chrome, Edge) ----
-// 1. 가상보드 프로그램 다운로드: firmware/의 .bin을 esptool-js로 보드에 쓴다 (NVS의 Wi-Fi 설정은 남는다)
-// 2. 연결: {"c":"si",...}를 USB로 보드에 보낸다. 비밀번호는 USB로만 가고 시뮬레이터(서버)로 보내지 않는다
-// 3. 보드 찾기: 보드를 리셋하고 시작 메시지에서 보드 종류, MAC, 서버, 그룹만 읽는다.
+// 가상보드 프로그램 다운로드: firmware/의 .bin을 esptool-js로 보드에 쓰고(NVS의 Wi-Fi 설정은 남는다), 정보가 있으면 이어서 si
+// 정보만 입력: {"c":"si",...}를 USB로 보드에 보낸다. 비밀번호는 USB로만 가고 시뮬레이터(서버)로 보내지 않는다
+// 보드 찾기: 보드를 리셋하고 시작 메시지에서 보드 종류, MAC, 서버, 그룹만 읽는다.
 //    시리얼 원문은 화면에 보여 주지 않는다 (예전 펌웨어는 Wi-Fi 비밀번호를 출력한다).
 const USB_PICK = "__usb__";
 const USB_VIDS = [0x1a86, 0x10c4, 0x0403, 0x303a];   // CH340(i2r 보드), CP210x, FTDI, ESP32 USB
@@ -1076,13 +1088,124 @@ function usbStep(at, bad) {
     return bad ? "" : `<li>${t}</li>`;
   }).join("");
 }
+// 메시지는 방금 누른 버튼 바로 아래에 보인다 (창 맨 아래에 있으면 못 보고 지나치기 쉽다)
+let usbWhere = "findRow";
 function usbMsg(text, bad) {
-  $("usbMsg").textContent = text;
-  $("usbMsg").className = "bio-msg" + (bad ? " bad" : "");
+  const el = $("usbMsg");
+  if ($(usbWhere) && el.previousElementSibling !== $(usbWhere)) $(usbWhere).after(el);
+  el.textContent = text;
+  el.className = "bio-msg" + (bad ? " bad" : "");
+  if (text) el.scrollIntoView({ block: "nearest" });
 }
 function usbLock(on) {
   usbBusy = on;
-  for (const id of ["fwGo", "siGo", "usbGo"]) $(id).disabled = on || !navigator.serial;
+  for (const id of ["fwGo", "siGo", "usbGo", "monToggle"]) $(id).disabled = on || !navigator.serial;
+}
+
+// ---- 시리얼 모니터 ----
+// 포트를 한 번 열어 두고 계속 읽는다. 읽은 글은 모니터에 보이고(비밀번호, 이메일은 가림),
+// 보드 찾기와 설정 보내기는 ser.text에 쌓인 글을 본다. 프로그램을 쓸 때(esptool)만 포트를 놓는다.
+const ser = { port: null, reader: null, piped: null, open: false, text: "" };
+const mon = { lines: [], tail: "", raf: 0 };
+const MON_MAX = 1500;
+// JSON 값 ("password":"...")은 따옴표 안을, "wifi.password: ..." 같은 글은 그 줄 끝까지 가린다
+const MON_SECRET_JSON = /("(?:pass(?:word)?|pwd?|mqttpass|e-?mail|e)"\s*:\s*")((?:[^"\\]|\\.)*)"/gi;
+const MON_SECRET = /(pass(?:word)?|pwd?|mqttpass|e-?mail)(\s*[:=]\s*)(.+)$/gim;
+const MON_RISKY = /pass|pw|mail|@/i;   // 줄이 끝나기 전에는 보여 주지 않는다 (가릴 값이 둘로 나뉘어 올 수 있음)
+const monMask = (t) => t.replace(MON_SECRET_JSON, '$1***"').replace(MON_SECRET, "$1$2***")
+  .replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, "***@***");
+
+function monPaint() {
+  mon.raf = 0;
+  const el = $("mon");
+  const stick = el.scrollTop + el.clientHeight >= el.scrollHeight - 30;
+  const tail = mon.tail && !MON_RISKY.test(mon.tail) ? monMask(mon.tail) : "";
+  el.textContent = mon.lines.join("\n") + (mon.lines.length ? "\n" : "") + tail;
+  if (stick) el.scrollTop = el.scrollHeight;
+}
+function monLater() { if (!mon.raf) mon.raf = requestAnimationFrame(monPaint); }
+function monLine(t) {
+  mon.lines.push(t);
+  if (mon.lines.length > MON_MAX) mon.lines.splice(0, mon.lines.length - MON_MAX);
+  monLater();
+}
+function monFeed(chunk) {
+  const parts = (mon.tail + chunk.replace(/\r/g, "")).split("\n");
+  mon.tail = parts.pop();
+  for (const l of parts) monLine(monMask(l));
+  monLater();
+}
+function monNote(t) {   // 화면이 한 일 (보드가 보낸 글과 구분)
+  if (mon.tail) { monLine(MON_RISKY.test(mon.tail) ? "" : monMask(mon.tail)); mon.tail = ""; }
+  monLine(`── ${t}`);
+}
+function monState() {
+  $("monToggle").textContent = ser.open ? "멈춤" : "보기 시작";
+  $("monState").textContent = ser.open ? "COM 포트 열림 · 115200" : "닫힘 (다른 프로그램이 COM 포트를 쓸 수 있음)";
+}
+
+async function serOpen(port) {
+  if (ser.open && ser.port === port) return;
+  await serClose();
+  await port.open({ baudRate: 115200 });
+  // 열 때 보드가 리셋에 붙잡히지 않게 (DTR, RTS를 놓는다)
+  try { await port.setSignals({ dataTerminalReady: false, requestToSend: false }); } catch (e) {}
+  const dec = new TextDecoderStream();
+  ser.piped = port.readable.pipeTo(dec.writable).catch(() => {});
+  ser.reader = dec.readable.getReader();
+  ser.port = port;
+  ser.open = true;
+  monState();
+  const reader = ser.reader;
+  (async () => {
+    try {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        ser.text += value;
+        if (ser.text.length > 20000) ser.text = ser.text.slice(-20000);
+        monFeed(value);
+      }
+    } catch (e) {
+      if (ser.reader === reader) monNote("USB 연결이 끊겼습니다");
+    }
+    if (ser.reader === reader) { await serClose(); }
+  })();
+}
+async function serClose() {
+  if (!ser.reader) { ser.open = false; monState(); return; }
+  const { reader, piped, port } = ser;
+  ser.reader = null;
+  ser.open = false;
+  try { await reader.cancel(); } catch (e) {}
+  await piped;
+  try { await port.close(); } catch (e) {}
+  monState();
+}
+async function serWaitFor(ms, until) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    if (until()) return true;
+    await sleepMs(100);
+  }
+  return until();
+}
+async function serReset() {
+  // RTS로 리셋 (Arduino IDE, esptool과 같은 방법)
+  await ser.port.setSignals({ dataTerminalReady: false, requestToSend: true });
+  await sleepMs(150);
+  await ser.port.setSignals({ requestToSend: false });
+}
+
+async function monToggle() {
+  if (usbBusy) return;
+  if (ser.open) { await serClose(); monNote("모니터를 멈췄습니다 (COM 포트를 놓음)"); return; }
+  usbWhere = "findRow";
+  const port = await usbGetPort();
+  if (!port) return;
+  try { await serOpen(port); monNote("모니터를 시작했습니다"); } catch (e) {
+    usbMsg("포트를 열 수 없습니다. Arduino 시리얼 모니터, i2r.link 웹처럼 COM 포트를 쓰는 프로그램을 닫고 다시 누르세요.", true);
+  }
 }
 function usbOpen() {
   $("usbFound").hidden = true;
@@ -1092,20 +1215,30 @@ function usbOpen() {
   if (navigator.serial) usbMsg("");
   else usbMsg("이 브라우저는 USB(Web Serial)를 쓸 수 없습니다. Chrome이나 Edge로 http://localhost 화면을 여세요.", true);
   usbLock(false);
+  monState();
   $("usbOverlay").hidden = false;
 }
 function usbClose() {
   if (usbBusy) return;
   $("siPw").value = "";
   $("usbOverlay").hidden = true;
+  serClose();   // 창을 닫으면 COM 포트를 놓는다 (Arduino IDE 등이 쓸 수 있게)
 }
 
 async function usbGetPort() {
   if (usbPort) return usbPort;
+  // 전에 허락한 포트가 하나뿐이면 다시 묻지 않는다 (새로고침한 뒤에도)
+  try {
+    const known = (await navigator.serial.getPorts())
+      .filter((p) => USB_VIDS.includes((p.getInfo() || {}).usbVendorId));
+    if (known.length === 1) { usbPort = known[0]; return usbPort; }
+  } catch (e) {}
   try {
     usbPort = await navigator.serial.requestPort({ filters: USB_VIDS.map((v) => ({ usbVendorId: v })) });
   } catch (e) {
-    usbMsg("포트를 고르지 않았습니다. 목록에 없으면 USB 케이블(충전 전용이 아닌지)과 CH340 드라이버를 확인하세요.", true);
+    usbMsg(e && e.name === "SecurityError"
+      ? "포트 고르기 창을 열지 못했습니다. 버튼을 한 번 더 눌러 주세요."
+      : "포트를 고르지 않았습니다. 목록에 없으면 USB 케이블(충전 전용이 아닌지)과 CH340 드라이버를 확인하세요.", true);
     return null;
   }
   return usbPort;
@@ -1133,51 +1266,29 @@ const usbDone = (r) => r.mac && (r.group || r.noWifi || r.noMqtt || r.oldFw);
 
 // 보드를 리셋하고 시작 메시지를 읽는다. line이 있으면 시작이 끝난 뒤 그 줄을 보내고(si),
 // 답({"c":"si","ok":..})을 받은 다음 다시 시작하는 보드의 메시지를 읽는다.
+// 포트는 열어 둔 채로 끝난다 (모니터가 계속 읽어, Wi-Fi와 MQTT 접속 과정을 볼 수 있다).
 async function usbSession(port, line) {
-  await port.open({ baudRate: 115200 });
-  const dec = new TextDecoderStream();
-  const piped = port.readable.pipeTo(dec.writable).catch(() => {});
-  const reader = dec.readable.getReader();
-  let text = "", si = null, pending = null;
-  const readFor = async (ms, until) => {
-    const end = Date.now() + ms;
-    while (Date.now() < end) {
-      pending = pending || reader.read();
-      const res = await Promise.race([pending, sleepMs(Math.max(0, end - Date.now())).then(() => null)]);
-      if (!res) return false;          // 시간이 다 됨 (읽던 것은 pending에 남겨 다음에 이어 받는다)
-      pending = null;
-      if (res.done) return false;
-      text += res.value;
-      if (text.length > 20000) text = text.slice(-20000);
-      if (until()) return true;
-    }
-    return false;
-  };
-  try {
-    // RTS로 리셋 (Arduino IDE, esptool과 같은 방법)
-    await port.setSignals({ dataTerminalReady: false, requestToSend: true });
-    await sleepMs(150);
-    await port.setSignals({ requestToSend: false });
-    await readFor(8000, () => usbDone(usbParse(text)));
-    if (line) {
-      const first = usbParse(text);
-      if (!first.simcheck) return { ...first, si: null };
-      await sleepMs(300);
-      const w = port.writable.getWriter();
-      await w.write(new TextEncoder().encode(line + "\n"));
-      w.releaseLock();
-      text = "";
-      await readFor(5000, () => /\{"c":"si","ok":(true|false)/.test(text));
-      const m = text.match(/\{"c":"si","ok":(true|false)(?:,"err":"(\w+)")?/);
-      si = m ? { ok: m[1] === "true", err: m[2] } : { ok: false, err: "noreply" };
-      if (si.ok) { text = ""; await readFor(9000, () => usbDone(usbParse(text))); }
-    }
-  } finally {
-    try { await reader.cancel(); } catch (e) {}
-    await piped;
-    try { await port.close(); } catch (e) {}
+  await serOpen(port);
+  ser.text = "";
+  monNote("보드를 다시 시작합니다 (리셋)");
+  await serReset();
+  await serWaitFor(8000, () => usbDone(usbParse(ser.text)));
+  let si = null;
+  if (line) {
+    const first = usbParse(ser.text);
+    if (!first.simcheck) return { ...first, si: null };
+    await sleepMs(300);
+    const j = JSON.parse(line);
+    monNote(`설정 보냄 (SSID ${j.ssid}, 서버 ${j.mqttBroker}:${j.mqttPort}) · 비밀번호는 보이지 않게 보냄`);
+    ser.text = "";
+    const w = port.writable.getWriter();
+    try { await w.write(new TextEncoder().encode(line + "\n")); } finally { w.releaseLock(); }
+    await serWaitFor(5000, () => /\{"c":"si","ok":(true|false)/.test(ser.text));
+    const m = ser.text.match(/\{"c":"si","ok":(true|false)(?:,"err":"(\w+)")?/);
+    si = m ? { ok: m[1] === "true", err: m[2] } : { ok: false, err: "noreply" };
+    if (si.ok) { ser.text = ""; await serWaitFor(9000, () => usbDone(usbParse(ser.text))); }
   }
-  return { ...usbParse(text), si };
+  return { ...usbParse(ser.text), si };
 }
 
 function usbShow(r) {
@@ -1198,12 +1309,12 @@ async function usbFinish(r) {
   usbShow(r);
   if (r.oldFw || !r.simcheck) {
     usbStep(2, "가상보드 프로그램(02_SimCheck)이 아닙니다");
-    usbMsg("보드에 다른 프로그램(예전 i2r.link 펌웨어 등)이 있습니다. 위의 1. 가상보드 프로그램 다운로드를 누르세요.", true);
+    usbMsg("보드에 다른 프로그램(예전 i2r.link 펌웨어 등)이 있습니다. 위의 가상보드 프로그램 다운로드를 누르세요.", true);
     return;
   }
   if (!r.group) {
     usbStep(2, r.noWifi ? "보드에 Wi-Fi 설정이 없습니다" : "보드에 MQTT 서버 설정이 없습니다");
-    usbMsg("위의 2. 연결에 SSID, PW, Broker를 넣고 연결을 누르세요.", true);
+    usbMsg("위에 SSID, PW, Broker를 넣고 '프로그램 다운로드 없이 정보만 입력'을 누르세요.", true);
     $(r.noWifi ? "siSsid" : "siBroker").focus();
     return;
   }
@@ -1229,7 +1340,7 @@ async function usbFinish(r) {
   }
   if (!found) {
     usbStep(3, "보드가 나타나지 않았습니다");
-    usbMsg("보드가 서버에 접속하지 못했습니다. SSID, PW가 맞는지, 2.4GHz 공유기인지 확인하고 2. 연결을 다시 하세요. 접속되면 목록에 저절로 나타납니다.", true);
+    usbMsg("보드가 서버에 접속하지 못했습니다. SSID, PW가 맞는지, 2.4GHz 공유기인지 확인하고 정보를 다시 넣으세요. 접속되면 목록에 저절로 나타납니다.", true);
     return;
   }
   uiMac = found.mac;
@@ -1242,6 +1353,7 @@ async function usbFinish(r) {
 
 async function usbFind() {
   if (usbBusy) return;
+  usbWhere = "findRow";
   const port = await usbGetPort();
   if (!port) return;
   usbLock(true);
@@ -1261,42 +1373,53 @@ async function usbFind() {
   }
 }
 
-async function siGo() {
-  if (usbBusy) return;
+// 입력한 연결 정보를 si 한 줄로. required가 false면 SSID를 비워도 된다 ({line: null})
+function siCheck(required) {
   const ssid = $("siSsid").value.trim(), broker = $("siBroker").value.trim();
   const port = Number($("siPort").value) || 1883;
-  if (!ssid) { usbMsg("SSID(공유기 이름)를 넣으세요.", true); $("siSsid").focus(); return; }
-  if (!/^[A-Za-z0-9.-]{1,253}$/.test(broker)) { usbMsg("Broker에 서버 주소를 넣으세요 (예: broker.emqx.io).", true); $("siBroker").focus(); return; }
+  if (!ssid) {
+    if (!required) return { line: null };
+    usbMsg("SSID(공유기 이름)를 넣으세요.", true); $("siSsid").focus(); return null;
+  }
+  if (!/^[A-Za-z0-9.-]{1,253}$/.test(broker)) { usbMsg("Broker에 서버 주소를 넣으세요 (예: broker.emqx.io).", true); $("siBroker").focus(); return null; }
   if (/(^|\.)i2r\.link$/i.test(broker) || broker.toLowerCase() === "i2r") {
     usbMsg("mqtt.i2r.link는 공식 펌웨어 전용이라 가상보드 프로그램은 접속하지 않습니다. 시뮬레이터와 같은 서버(예: broker.emqx.io)를 넣으세요.", true);
+    $("siBroker").focus(); return null;
+  }
+  return { line: JSON.stringify({ c: "si", ssid, password: $("siPw").value, mqttBroker: broker, mqttPort: port }) };
+}
+
+// 보드에 si를 보내고, 다시 시작한 보드를 찾아 고른다
+async function siApply(port, line) {
+  usbStep(1);
+  usbMsg("보드에 Wi-Fi와 서버 설정을 보내는 중입니다...");
+  let r;
+  try { r = await usbSession(port, line); } catch (e) {
+    usbStep(1, "포트를 열 수 없습니다");
+    usbMsg("Arduino 시리얼 모니터, i2r.link 웹처럼 COM 포트를 쓰는 프로그램을 닫고 다시 누르세요.", true);
     return;
   }
-  const sp = await usbGetPort();
-  if (!sp) return;
+  if (!r.si) { await usbFinish(r); return; }   // 가상보드 프로그램이 아님 등
+  if (!r.si.ok) {
+    usbStep(1, "보드가 설정을 받지 않았습니다");
+    usbMsg(r.si.err === "noreply" ? "보드가 답하지 않았습니다. 가상보드 프로그램이 들어 있는지 확인하세요 (가상보드 프로그램 다운로드)." : `보드 오류: ${r.si.err}`, true);
+    return;
+  }
+  $("siPw").value = "";
+  usbMsg("✅ 설정을 보냈습니다. 보드가 다시 시작합니다.");
+  await usbFinish(r);
+}
+
+async function siGo() {
+  if (usbBusy) return;
+  usbWhere = "fwRow";
+  const c = siCheck(true);
+  if (!c) return;
+  const port = await usbGetPort();
+  if (!port) return;
   usbLock(true);
   $("usbFound").hidden = true;
-  const line = JSON.stringify({ c: "si", ssid, password: $("siPw").value, mqttBroker: broker, mqttPort: port });
-  try {
-    usbStep(1);
-    usbMsg("보드에 Wi-Fi와 서버 설정을 보내는 중입니다...");
-    let r;
-    try { r = await usbSession(sp, line); } catch (e) {
-      usbStep(1, "포트를 열 수 없습니다");
-      usbMsg("Arduino 시리얼 모니터, i2r.link 웹처럼 COM 포트를 쓰는 프로그램을 닫고 다시 누르세요.", true);
-      return;
-    }
-    if (!r.si) { await usbFinish(r); return; }   // 가상보드 프로그램이 아님 등
-    if (!r.si.ok) {
-      usbStep(1, "보드가 설정을 받지 않았습니다");
-      usbMsg(r.si.err === "noreply" ? "보드가 답하지 않았습니다. 가상보드 프로그램이 들어 있는지 확인하세요 (1번)." : `보드 오류: ${r.si.err}`, true);
-      return;
-    }
-    $("siPw").value = "";
-    usbMsg("✅ 설정을 보냈습니다. 보드가 다시 시작합니다.");
-    await usbFinish(r);
-  } finally {
-    usbLock(false);
-  }
+  try { await siApply(port, c.line); } finally { usbLock(false); }
 }
 
 async function sha256hex(buf) {
@@ -1307,9 +1430,13 @@ async function sha256hex(buf) {
 async function fwGo() {
   if (usbBusy) return;
   const kind = $("fwKind").value;
-  if (!confirm(`${kind} 가상보드 프로그램을 씁니다. 보드에 있던 프로그램은 지워집니다. 릴레이에 연결된 것이 없나요?`)) return;
+  usbWhere = "fwRow";
+  const c = siCheck(false);     // 정보가 틀렸으면 쓰기 전에 알린다
+  if (!c) return;
+  // 포트 고르기는 버튼을 누른 직후에만 열 수 있으므로, 확인 창보다 먼저 한다
   const port = await usbGetPort();
   if (!port) return;
+  if (!confirm(`${kind} 가상보드 프로그램을 씁니다${c.line ? "(이어서 Wi-Fi, 서버 설정)" : ""}. 보드에 있던 프로그램은 지워집니다. 릴레이에 연결된 것이 없나요?`)) return;
   usbLock(true);
   $("fwBar").style.width = "0";
   let transport = null;
@@ -1331,11 +1458,14 @@ async function fwGo() {
       return;
     }
     usbMsg("보드에 접속하는 중입니다 (부트 모드)...");
+    await serClose();   // 쓰는 동안은 esptool이 포트를 쓴다
+    monNote(`${kind} 가상보드 프로그램 쓰기 시작 (esptool-js)`);
     transport = new esptool.Transport(port, false);
     const loader = new esptool.ESPLoader({ transport, baudrate: 460800,
-      terminal: { clean() {}, writeLine() {}, write() {} } });
-    const chip = await loader.main();
-    if (!/ESP32(?!-)/.test(chip)) { usbMsg(`이 보드는 ${chip}입니다. i2r-02/03/04(ESP32)가 아닙니다.`, true); return; }
+      terminal: { clean() {}, writeLine: (d) => monFeed(String(d) + "\n"), write: (d) => monFeed(String(d)) } });
+    const chip = await Promise.race([loader.main(), sleepMs(25000).then(() => { throw new Error("boot_timeout"); })]);
+    // 클래식 ESP32만 (예: "ESP32-D0WD-V3 (revision 3)"). S2, S3, C3, C6, H2, P4는 다른 칩
+    if (!/^ESP32(?!-?(S2|S3|C\d|H\d|P4))/i.test(chip)) { usbMsg(`이 보드는 ${chip}입니다. i2r-02/03/04(ESP32)가 아닙니다.`, true); return; }
     const total = fileArray.reduce((n, f) => n + f.data.length, 0);
     const before = fileArray.map((f, i) => fileArray.slice(0, i).reduce((n, x) => n + x.data.length, 0));
     usbMsg(`${kind} 가상보드 프로그램을 쓰는 중입니다... (1분쯤 걸립니다. USB를 뽑지 마세요)`);
@@ -1350,14 +1480,26 @@ async function fwGo() {
     await transport.disconnect();
     transport = null;
     $("fwBar").style.width = "100%";
-    usbMsg(`✅ ${kind} 가상보드 프로그램을 썼습니다. 보드를 찾는 중입니다...`);
     await sleepMs(500);
+    if (c.line) {
+      usbMsg(`✅ ${kind} 가상보드 프로그램을 썼습니다. 이어서 Wi-Fi와 서버 설정을 보냅니다...`);
+      await siApply(port, c.line);
+      return;
+    }
+    usbMsg(`✅ ${kind} 가상보드 프로그램을 썼습니다. 보드를 찾는 중입니다...`);
     usbStep(1);
     let r;
-    try { r = await usbSession(port); } catch (e) { usbMsg("다 썼지만 포트를 다시 열지 못했습니다. 3. 보드 찾기를 누르세요.", true); return; }
+    try { r = await usbSession(port); } catch (e) { usbMsg("다 썼지만 포트를 다시 열지 못했습니다. 2. 보드 찾기를 누르세요.", true); return; }
     await usbFinish(r);
   } catch (e) {
-    usbMsg(`쓰지 못했습니다: ${e && e.message ? e.message : e}. USB를 다시 꽂고, COM 포트를 쓰는 다른 프로그램을 닫은 뒤 다시 누르세요.`, true);
+    const why = e && e.message ? e.message : String(e);
+    if (why === "boot_timeout") {
+      usbMsg("보드가 다운로드 모드로 들어가지 않았습니다. 보드의 BOOT 버튼을 누른 채로 다시 누르고, 쓰기가 시작되면 BOOT 버튼을 놓으세요.", true);
+    } else if (/open|busy|access|InvalidState|NetworkError/i.test(why)) {
+      usbMsg(`포트를 열 수 없습니다 (${why}). Arduino 시리얼 모니터, i2r.link 웹처럼 COM 포트를 쓰는 프로그램을 닫고 다시 누르세요.`, true);
+    } else {
+      usbMsg(`쓰지 못했습니다: ${why}. USB를 다시 꽂고 다시 누르세요.`, true);
+    }
   } finally {
     if (transport) { try { await transport.disconnect(); } catch (e) {} }
     usbLock(false);
@@ -1367,6 +1509,8 @@ async function fwGo() {
 $("fwGo").onclick = fwGo;
 $("siGo").onclick = siGo;
 $("usbGo").onclick = usbFind;
+$("monToggle").onclick = monToggle;
+$("monClear").onclick = () => { mon.lines = []; mon.tail = ""; monPaint(); };
 $("usbClose").onclick = usbClose;
 $("usbOverlay").onclick = (e) => { if (e.target === $("usbOverlay")) usbClose(); };
 
