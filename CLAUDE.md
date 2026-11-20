@@ -64,7 +64,7 @@ python sim.py --server test.mosquitto.org --boards 2
 | 제어 화면의 "스위치 N" 이름 | 시간표 (`sch`) |
 | 온도, 습도 카드 | 센서 트리거와 보정 (`bs`) |
 | 오른쪽 위 "브로커" | MQTT 서버와 그룹 바꾸기 (`POST /api/server`, 아이디가 있는 서버는 안 됨) |
-| 보드 목록의 "🔌 USB로 실제 보드 찾기" | 브라우저(Web Serial)가 보드를 리셋해 시작 메시지에서 MAC, 서버, 그룹을 읽고, 서버를 맞춘 뒤 그 보드를 고름. 02_SimCheck가 있어야 함 |
+| 보드 목록의 "🔌 USB로 실제 보드 연결" | 브라우저(Web Serial)로 1) 가상보드 프로그램 쓰기(esptool-js, `sim/firmware/`), 2) Wi-Fi·서버 `si` 보내기(비밀번호는 USB로만), 3) 시작 메시지에서 MAC, 서버, 그룹을 읽어 서버를 맞추고 그 보드 고르기 |
 
 ## 4. 프로토콜 시험
 
@@ -134,6 +134,7 @@ python test_protocol.py --server test.mosquitto.org --group sim-xxxx --mac 02:..
 | `sim/web/index.html` | 제어 화면 |
 | `sim/start-sim.bat` | Windows에서 두 번 눌러 켜기 |
 | `sim/README.md` | 옵션과 메시지 형식 |
+| `sim/firmware/` | 가상보드 프로그램 .bin (I2R_IoT 02_SimCheck, i2r-02/03/04)과 `manifest.json`. I2R_IoT, I2R_PLC가 바뀌면 `python sim/firmware/build_firmware.py`로 다시 만들고 커밋 |
 
 프로토콜 원문은 https://github.com/kdi6033/i2r 의 protocol.md에 있습니다.
 

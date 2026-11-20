@@ -1,0 +1,42 @@
+{
+  "sketch": "02_SimCheck",
+  "built": "2026-11-20",
+  "fqbn": "esp32:esp32:esp32:FlashSize=8M,PartitionScheme=huge_app",
+  "esp32_core": "3.3.12",
+  "I2R_IoT": "0.2.0",
+  "I2R_PLC": "1.0.0",
+  "parts": [
+    {
+      "file": "bootloader.bin",
+      "addr": 4096,
+      "sha256": "ff6ec632b74331f0631c780f533eddf4ede0975e646238ca40f6146acb19e033"
+    },
+    {
+      "file": "partitions.bin",
+      "addr": 32768,
+      "sha256": "aaae2888c5a6a348004b5b436f47abb25ae32e72d9003902955a998eda723edd"
+    },
+    {
+      "file": "boot_app0.bin",
+      "addr": 57344,
+      "sha256": "f94c5d786a7a8fab06ac5d10e33bf37711a6697636dc037559ea19cc410a17f0"
+    }
+  ],
+  "kinds": {
+    "i2r-02": {
+      "file": "simcheck-i2r-02.bin",
+      "addr": 65536,
+      "sha256": "6e7aeda0ed481d87c445d7ae3e7d897a098521ffa8104c17ada075996fc7aa0e"
+    },
+    "i2r-03": {
+      "file": "simcheck-i2r-03.bin",
+      "addr": 65536,
+      "sha256": "1582903eeb356bc057cc5e443add0eb7377c757ebf9ed536c3079141db0bf39e"
+    },
+    "i2r-04": {
+      "file": "simcheck-i2r-04.bin",
+      "addr": 65536,
+      "sha256": "bc36c80cc073159e6043204a9a2d557d8360d2705c2a514172b3d0590912638f"
+    }
+  }
+}

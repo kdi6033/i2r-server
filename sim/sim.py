@@ -268,6 +268,19 @@ def switch_server(sim, server, port, group):
     return True, None
 
 
+def firmware_files():
+    """firmware/manifest.json에 적힌 파일 이름들 (+ manifest.json)."""
+    try:
+        with open(os.path.join(HERE, "firmware", "manifest.json"), encoding="utf-8") as f:
+            m = json.load(f)
+    except (OSError, ValueError):
+        return set()
+    names = {"manifest.json"}
+    names.update(p["file"] for p in m.get("parts", []))
+    names.update(k["file"] for k in m.get("kinds", {}).values())
+    return {n for n in names if n and "/" not in n and "\\" not in n and ".." not in n}
+
+
 def make_handler(sim):
     index_path = os.path.join(HERE, "web", "index.html")
 
@@ -291,6 +304,20 @@ def make_handler(sim):
                     body = f.read()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            elif u.path.startswith("/firmware/"):
+                # 가상보드 프로그램 (브라우저가 USB로 보드에 쓴다). firmware/ 안의 정해진 파일만 준다
+                name = u.path[len("/firmware/"):]
+                if name not in firmware_files():
+                    return self._json({"error": "not found"}, 404)
+                with open(os.path.join(HERE, "firmware", name), "rb") as f:
+                    body = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8" if name.endswith(".json")
+                                 else "application/octet-stream")
                 self.send_header("Cache-Control", "no-store")
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
