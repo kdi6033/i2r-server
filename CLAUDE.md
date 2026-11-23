@@ -2,7 +2,8 @@
 
 이 저장소는 i2r 보드(IoT PLC i2r-02/03/04, Otto)와 같은 i2r 프로토콜로 동작하는 서버 쪽 프로그램입니다.
 i2r 전체 안내판(다른 키트, 작업 폴더, i2r 스킬)은 https://raw.githubusercontent.com/kdi6033/i2r/main/AGENTS.md 에 있습니다.
-지금 완성된 것은 `sim/` 시뮬레이터입니다. `local/`, `aws/`, `common/`은 만드는 중이라 아직 없습니다.
+지금 완성된 것은 `sim/` 시뮬레이터와 `examples/standalone`(보드 혼자 동작하는 펌웨어)입니다. `local/`, `aws/`, `common/`은 만드는 중이라 아직 없습니다.
+보드에 올리는 펌웨어 예제는 `examples/`에 있습니다 (10장). 사용자가 보드 웹 제어, 스케줄, 입력 규칙, 센서 트리거가 있는 PLC 프로그램을 만들려고 하면 10장을 먼저 읽습니다.
 
 사용자는 보통 이렇게 말합니다.
 - "https://github.com/kdi6033/i2r 읽고 i2r 개발을 도와줘. 시뮬레이터 켜 줘" (안내판을 거쳐 옴)
@@ -144,6 +145,8 @@ python test_protocol.py --server test.mosquitto.org --group sim-xxxx --mac 02:..
 | `sim/web/index.html` | 제어 화면 |
 | `sim/start-sim.bat` | Windows에서 두 번 눌러 켜기 |
 | `sim/README.md` | 옵션과 메시지 형식 |
+| `examples/README.md` | 보드 펌웨어 예제 세 그룹(standalone, local, cloud) 안내 |
+| `examples/standalone/` | ① 혼자 동작: 보드가 웹서버 (입력 규칙, 스케줄, 센서 트리거, 이름, NTP). 10장 |
 | `sim/firmware/` | 가상보드 프로그램 .bin (I2R_IoT 02_PLC_Simulator, i2r-02/03/04)과 `manifest.json`. I2R_IoT, I2R_PLC가 바뀌면 `python sim/firmware/build_firmware.py`로 다시 만들고 커밋 |
 
 ## 9. 프로토콜 (`protocol.md`)
@@ -153,6 +156,57 @@ python test_protocol.py --server test.mosquitto.org --group sim-xxxx --mac 02:..
 - 필드와 명령은 더하기만 합니다. 지우거나 뜻을 바꾸면 `pv`를 올리고 protocol.md "바뀐 내역"에 적습니다.
 - 사용자 스케치는 JSON을 직접 만들지 않고 라이브러리 함수를 씁니다 (protocol.md 0.1).
 
+
+## 10. 보드 펌웨어 예제 (`examples/`)
+
+i2r PLC(i2r-02/03/04)에 올리는 펌웨어입니다. 연결 방식으로 세 그룹을 나누고, 그 안에서 보드 종류는 컴파일할 때 정합니다.
+
+| 그룹 | 폴더 | 구성 | 상태 |
+|---|---|---|---|
+| ① 혼자 동작 | `examples/standalone/` | 보드가 웹서버. 같은 공유기의 휴대폰, PC에서 `http://i2r.local` | ✅ |
+| ② 현장 서버 | `examples/local/` | PLC 여러 대 + i2r-05(MQTT 서버) | 만드는 중 |
+| ③ 클라우드 | `examples/cloud/` | 아마존 서버 | 만드는 중 |
+
+사용자는 보통 이렇게 말합니다.
+- "i2r-03을 휴대폰으로 제어하고 싶어" / "standalone 올려 줘" → ①을 그대로 올립니다.
+- "standalone 참고해서 ~하는 프로그램 만들어 줘" → ①을 **복사해서** 고칩니다.
+
+### 10.1 일하는 순서
+
+1. **먼저 읽기**: `examples/README.md`, 그다음 `examples/standalone/standalone.ino` 맨 위 설명. 웹 화면은 `page.h`(HTML, JS 한 파일), 로고는 `logo.h`입니다.
+2. **보드 확인**: 말하지 않았으면 묻습니다. 소스는 하나이고 `I2R_BOARD`(기본 `I2R_03`)만 바꿉니다. i2r-02/04는 온습도 센서가 없어 화면에서 온도·습도 카드가 숨겨집니다.
+3. **사용자 프로그램은 복사본에서**: 예제를 고쳐 달라는 말이 없으면 `examples/`를 고치지 않습니다. 사용자 작업 폴더(예: `my_sketches/<영문_이름>/<영문_이름>.ino`)로 폴더째 복사하고, 파일 이름을 폴더 이름에 맞춘 뒤 고칩니다.
+4. **컴파일**: 라이브러리 I2R_PLC, I2R_IoT, ArduinoJson, PubSubClient (설치는 4.1장 4번과 같음). 성공할 때까지 스스로 고칩니다.
+   ```
+   arduino-cli compile --fqbn esp32:esp32:esp32:FlashSize=8M,PartitionScheme=huge_app <스케치 폴더>
+   ```
+   다른 보드: `--build-property "compiler.cpp.extra_flags=-DI2R_BOARD=I2R_02"`
+5. **업로드 전**: 릴레이에 무엇이 연결되어 있는지, 켜져도 괜찮은지 묻습니다. 저장된 스케줄이 켜자마자 출력을 켤 수 있습니다.
+6. **Wi-Fi**: 사용자가 **직접** 넣게 합니다. 비밀번호를 채팅으로 받지 않고 파일에 옮겨 적지 않습니다.
+   - i2r.link 웹 **연결 → COM 포트(USB)** (이메일, 서버 칸은 비움). 보드가 `{"c":"si","ok":true}`로 답하고 다시 시작합니다.
+   - 또는 사용자가 `secrets.example.h`를 `secrets.h`로 복사해 직접 적습니다 (`.gitignore`에 있음).
+7. **확인**: 시리얼(115200)에서 `==== i2r-server standalone ...`, `[Wi-Fi] 연결됨`, `웹 주소: http://...`를 봅니다. 휴대폰이 adb로 연결되어 있으면 `adb shell am start -a android.intent.action.VIEW -d http://<IP>/`로 열고 `adb exec-out screencap -p`로 화면을 확인할 수 있습니다.
+
+### 10.2 standalone의 구조 (고칠 때 알아 둘 것)
+
+| 부분 | 내용 |
+|---|---|
+| 웹 API | `GET /` 화면, `GET /state` 상태(1초마다), `POST /cmd` 명령 JSON, `GET /logo.png` |
+| 명령 | protocol.md의 `so`, `bio`, `sch`, `bs`, `st`, `gs`와 같은 모양. 다른 점: 목록은 `items` 배열 하나로 답하고, insert/delete 뒤에도 목록을 돌려줌. `name`은 이 예제만 |
+| 시리얼 | 같은 JSON 한 줄을 받아 같은 답. `si`(Wi-Fi 설정)는 **USB에서만** 받음 (웹 `/cmd`로 온 si는 unknown) |
+| 저장 (NVS) | `i2rweb`: 규칙, 스케줄, 센서 트리거, 보정, 이름 / `i2riot`: Wi-Fi (I2R_IoT와 같은 자리) / `i2r`: 시간대, 저장된 시각 (I2R_Time) |
+| 시간 | I2R_Time + 1시간마다 NTP 다시 요청, 10분마다 시각 저장. 인터넷이 없어도 규칙, 스케줄은 보드 시계로 계속 |
+| 번호 | 사람은 1부터(OUT1), JSON은 0부터(`"n":0`) |
+
+### 10.3 배포용 펌웨어 만들기 (관리자가 요청할 때만)
+
+- 배포용은 `-DI2R_RELEASE`를 넣어 `secrets.h`를 읽지 않게 만듭니다. `--output-dir`의 `.ino.merged.bin`(8MB)을 `i2r-0X.ino.merged.bin`으로 바꿔 씁니다.
+  ```
+  arduino-cli compile --fqbn esp32:esp32:esp32:FlashSize=8M,PartitionScheme=huge_app --build-property "compiler.cpp.extra_flags=-DI2R_RELEASE -DI2R_BOARD=I2R_03" --output-dir <임시 폴더> examples/standalone
+  ```
+- 배포 위치는 `kdi6033/download`의 `i2r-server/standalone/`입니다 (`i2r-server/local/`, `i2r-server/cloud/`도 같은 규칙). 올리는 일(push)은 공개되므로 반드시 먼저 묻습니다.
+- 고친 뒤에는 `standalone.ino`의 `VERSION`(`standalone-x.y.z`)을 올립니다.
+- 공개하기 전에 `secrets.h`, `build/` 폴더, 실제 Wi-Fi 이름·비밀번호가 들어가지 않았는지 확인합니다.
 
 ## 안내판을 거쳐 왔다면 (처음 한 번 끝날 때)
 

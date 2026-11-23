@@ -19,3 +19,6 @@ secrets.h
 .idea/
 .DS_Store
 Thumbs.db
+
+# Arduino IDE "컴파일된 바이너리 내보내기"로 생기는 폴더 (개발용 Wi-Fi가 들어 있을 수 있음)
+build/
