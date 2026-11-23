@@ -1,4 +1,4 @@
-// standalone: i2r PLC(i2r-02, 03, 04) 혼자 동작하는 펌웨어 (i2r-server 그룹 ①)
+// i2r-02.ino: i2r-02 혼자 동작하는 펌웨어 (i2r-server 그룹 ① standalone)
 //
 // i2r-server 펌웨어는 세 그룹으로 나뉜다. 이 파일은 ①이다.
 //   ① standalone  보드 혼자 동작. 보드가 웹서버가 되어 같은 공유기의 휴대폰, PC에서 제어
@@ -11,12 +11,12 @@
 //
 // [Wi-Fi 설정] 두 가지 중 하나
 //   1) i2r.link 웹 → 연결 → COM 포트(USB)에서 Wi-Fi 이름, 비밀번호를 보낸다 (배포 펌웨어는 이 방법).
-//      보드가 {"c":"si",...}를 받아 저장하고 다시 시작한다. 이메일, 서버 칸은 쓰지 않는다.
+//      보드가 {"c":"si",...}를 받아 SSID, 비밀번호만 저장하고 다시 시작한다. Email, Broker 칸은 저장하지 않는다.
 //   2) 개발용: secrets.example.h를 secrets.h로 복사해 WIFI_SSID, WIFI_PASSWORD를 적는다. 1)로 저장한 값이 있으면 그것을 먼저 쓴다.
 //   저장 자리는 I2R_IoT와 같다 (NVS "i2riot"). 그래서 ② local, ③ cloud 펌웨어로 바꿔도 Wi-Fi가 이어진다.
 //
-// [보드 바꾸기] 아래 I2R_BOARD를 I2R_02, I2R_03, I2R_04 중 하나로.
-//   배포용은 arduino-cli로 -DI2R_BOARD=I2R_02 -DI2R_RELEASE 를 넣어 만든다 (Wi-Fi 값을 비움).
+// [보드] 이 폴더는 i2r-02용이다. i2r-02, i2r-03, i2r-04 폴더의 소스는 아래 I2R_BOARD 한 줄만 다르다.
+//   고칠 때는 세 폴더를 함께 고친다. 배포용은 arduino-cli로 -DI2R_RELEASE 를 넣어 만든다 (Wi-Fi 값을 비움).
 //
 // [화면에서 하는 것] (i2r.link 장치 화면과 같음)
 //   입력 상태 (INPUTS)    IN1~IN4 켜짐/꺼짐 표시. 이름을 누르면 "입력 규칙" (bio)
@@ -72,7 +72,7 @@
 // =====================================================================================
 
 #ifndef I2R_BOARD
-#define I2R_BOARD I2R_03  // 내 보드: I2R_02, I2R_03, I2R_04
+#define I2R_BOARD I2R_02  // 이 폴더의 보드 (i2r-02)
 #endif
 I2R_PLC plc(I2R_BOARD);
 I2R_Time itime;
@@ -829,8 +829,9 @@ void loadWifi() {
 }
 
 // USB로 받은 {"c":"si","ssid":"..","password":"..","e":"..","mqttBroker":".."} 저장 (i2r.link 연결 → COM 포트)
-// I2R_IoT(I2R_Net)와 같은 자리, 같은 이름으로 저장한다. 답 {"c":"si","ok":true} 뒤 다시 시작.
-// 이메일(e)은 쓰지 않는다. 서버 칸의 i2r.link 기본값("i2r", mqtt.i2r.link)은 비운다 (공식 펌웨어 전용 서버).
+// I2R_IoT(I2R_Net)와 같은 자리, 같은 이름(ssid, pw)으로 저장한다. 답 {"c":"si","ok":true} 뒤 다시 시작.
+// standalone은 SSID와 비밀번호만 저장한다. 화면의 Email, Broker 칸은 무엇을 넣어도 저장하지 않는다
+// (예전에 저장된 서버 설정도 지운다. ② local, ③ cloud 펌웨어는 그때 서버를 다시 넣는다).
 void applySi(const String &text) {
   JsonDocument doc;
   if (deserializeJson(doc, text)) { Serial.println("{\"c\":\"si\",\"ok\":false,\"err\":\"json\"}"); return; }
@@ -838,21 +839,11 @@ void applySi(const String &text) {
   ssid.trim();
   if (ssid.length() == 0) { Serial.println("{\"c\":\"si\",\"ok\":false,\"err\":\"ssid\"}"); return; }
   String pw = doc["password"] | "";
-  String broker = doc["mqttBroker"] | "";
-  broker.trim();
-  String lower = broker;
-  lower.toLowerCase();
-  if (lower == "i2r" || lower.endsWith("i2r.link")) broker = "";
   Preferences p;
   if (!p.begin(WIFI_NS, false)) { Serial.println("{\"c\":\"si\",\"ok\":false,\"err\":\"nvs\"}"); return; }
   p.clear();
   p.putString("ssid", ssid);
   p.putString("pw", pw);
-  p.putString("broker", broker);  // standalone은 쓰지 않음 (② local, ③ cloud가 씀)
-  p.putUShort("port", doc["mqttPort"] | (uint16_t)1883);
-  p.putString("user", doc["mqttUser"] | "");
-  p.putString("mpass", doc["mqttPass"] | "");
-  p.putString("group", doc["g"] | "");
   p.end();
   Serial.println("{\"c\":\"si\",\"ok\":true}");
   Serial.printf("[Wi-Fi] 설정을 저장했습니다: \"%s\". 다시 시작합니다.\n", ssid.c_str());  // 비밀번호는 찍지 않는다
