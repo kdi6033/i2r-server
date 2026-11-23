@@ -1,10 +1,10 @@
-// i2r-04.ino: i2r-04 혼자 동작하는 펌웨어 (i2r-server 그룹 ① standalone)
+// i2r-02.ino: i2r-02 혼자 동작하는 펌웨어 (i2r-server 그룹 ① standalone)
 //
 // i2r-server 펌웨어는 세 그룹으로 나뉜다. 이 파일은 ①이다.
 //   ① standalone  보드 혼자 동작. 보드가 웹서버가 되어 같은 공유기의 휴대폰, PC에서 제어
 //   ② local       현장 서버: PLC 여러 대 + i2r-05(MQTT 서버)
-//   ③ cloud       클라우드: 아마존 서버와 연결
-// 배포 위치: https://github.com/kdi6033/download 의 i2r-server/standalone/i2r-0X.ino.merged.bin
+//   ③ aws         아마존(AWS) 서버와 연결해 인터넷 너머에서 제어
+// 배포 위치: https://github.com/kdi6033/download 의 i2r_server/standalone/i2r-0X.ino.merged.bin
 //
 // 보드가 직접 웹페이지를 띄운다. 같은 공유기에 연결된 PC나 휴대폰 브라우저에서
 // http://i2r.local 또는 시리얼 모니터에 나온 주소(http://192.168.x.x)를 연다.
@@ -13,9 +13,9 @@
 //   1) i2r.link 웹 → 연결 → COM 포트(USB)에서 Wi-Fi 이름, 비밀번호를 보낸다 (배포 펌웨어는 이 방법).
 //      보드가 {"c":"si",...}를 받아 SSID, 비밀번호만 저장하고 다시 시작한다. Email, Broker 칸은 저장하지 않는다.
 //   2) 개발용: secrets.example.h를 secrets.h로 복사해 WIFI_SSID, WIFI_PASSWORD를 적는다. 1)로 저장한 값이 있으면 그것을 먼저 쓴다.
-//   저장 자리는 I2R_IoT와 같다 (NVS "i2riot"). 그래서 ② local, ③ cloud 펌웨어로 바꿔도 Wi-Fi가 이어진다.
+//   저장 자리는 I2R_IoT와 같다 (NVS "i2riot"). 그래서 ② local, ③ aws 펌웨어로 바꿔도 Wi-Fi가 이어진다.
 //
-// [보드] 이 폴더는 i2r-04용이다. i2r-02, i2r-03, i2r-04 폴더의 소스는 아래 I2R_BOARD 한 줄만 다르다.
+// [보드] 이 폴더는 i2r-02용이다. i2r-02, i2r-03, i2r-04 폴더의 소스는 아래 I2R_BOARD 한 줄만 다르다.
 //   고칠 때는 세 폴더를 함께 고친다. 배포용은 arduino-cli로 -DI2R_RELEASE 를 넣어 만든다 (Wi-Fi 값을 비움).
 //
 // [화면에서 하는 것] (i2r.link 장치 화면과 같음)
@@ -72,7 +72,7 @@
 // =====================================================================================
 
 #ifndef I2R_BOARD
-#define I2R_BOARD I2R_04  // 이 폴더의 보드 (i2r-04)
+#define I2R_BOARD I2R_02  // 이 폴더의 보드 (i2r-02)
 #endif
 I2R_PLC plc(I2R_BOARD);
 I2R_Time itime;
@@ -80,7 +80,7 @@ WebServer server(80);
 
 typedef I2R_Link L;   // 값 검사 함수(isInt, isNum, isOnOff ...)만 쓴다
 
-const char *GROUP = "standalone";            // i2r-server 그룹 (standalone, local, cloud)
+const char *GROUP = "standalone";            // i2r-server 그룹 (standalone, local, aws)
 const char *VERSION = "standalone-0.1.0";    // 버전에 그룹을 붙여, 같은 이름의 파일이어도 구별한다
 const char *WIFI_NS = "i2riot";              // Wi-Fi 저장 자리 (I2R_IoT의 I2R_Net과 같음)
 String wifiSsid, wifiPw;                     // 실제로 쓰는 Wi-Fi (저장된 값 → 없으면 위 값)
@@ -831,7 +831,7 @@ void loadWifi() {
 // USB로 받은 {"c":"si","ssid":"..","password":"..","e":"..","mqttBroker":".."} 저장 (i2r.link 연결 → COM 포트)
 // I2R_IoT(I2R_Net)와 같은 자리, 같은 이름(ssid, pw)으로 저장한다. 답 {"c":"si","ok":true} 뒤 다시 시작.
 // standalone은 SSID와 비밀번호만 저장한다. 화면의 Email, Broker 칸은 무엇을 넣어도 저장하지 않는다
-// (예전에 저장된 서버 설정도 지운다. ② local, ③ cloud 펌웨어는 그때 서버를 다시 넣는다).
+// (예전에 저장된 서버 설정도 지운다. ② local, ③ aws 펌웨어는 그때 서버를 다시 넣는다).
 void applySi(const String &text) {
   JsonDocument doc;
   if (deserializeJson(doc, text)) { Serial.println("{\"c\":\"si\",\"ok\":false,\"err\":\"json\"}"); return; }

@@ -1,5 +1,7 @@
 # standalone 예제로 프로그램 만들기 (Claude 작업 안내)
 
+사람이 읽는 설명은 [README.md](README.md)에 있습니다. 이 파일은 Claude가 따르는 작업 순서입니다.
+
 학생이나 사용자가 "~하는 PLC 프로그램 만들어 줘"라고 하면, 이 예제를 바탕으로 요구를 분석해 프로그램을 만듭니다.
 이 폴더의 `i2r-02/`, `i2r-03/`, `i2r-04/`는 같은 프로그램이고 `#define I2R_BOARD` 한 줄만 다릅니다.
 
@@ -26,7 +28,7 @@
 
 ## 2. 작업 폴더 (예제 원본은 고치지 않음)
 
-- 예제를 고쳐 달라는 말이 없으면 이 폴더(`examples/standalone/`)는 고치지 않습니다.
+- 예제를 고쳐 달라는 말이 없으면 이 폴더(`standalone/`)는 고치지 않습니다.
 - 보드 폴더를 통째로 사용자 작업 폴더로 복사합니다: `my_sketches/<영문_이름>/` (이름은 영문 소문자, 숫자, `_`).
 - 폴더 안의 `i2r-0X.ino` 이름을 폴더 이름에 맞춰 `<영문_이름>.ino`로 바꿉니다 (Arduino 규칙).
 - `VERSION`을 바꿔 구별합니다: `"standalone-0.1.0"` → `"<영문_이름>-0.1.0"`.
@@ -75,7 +77,7 @@ I2R_PLC 함수: `plc.input(n)`, `plc.rising(n)`, `plc.falling(n)`, `plc.output(n
 | 온도 기록 그래프 | `.ino`에 최근 값 배열(링 버퍼, 예: 5분마다 288개=하루)과 `GET /log` 대신 명령 `{"c":"log"}`, 화면은 `<canvas>`로 그리기 (외부 라이브러리 없이. 인터넷 없이도 보여야 함) |
 | 입력 두 개 조건(AND/OR) | 화면 규칙으로 안 되면 `loop()`에 함수를 더함: `if (plc.input(1) && plc.input(2)) ...` (켜는 순간만 실행하도록 이전 값 기억) |
 | 암호로 화면 잠그기 | `POST /cmd`에서 비밀번호 확인. 비밀번호는 `secrets.h`나 화면에서 정해 NVS에 저장. HTTP라 같은 Wi-Fi에서는 엿볼 수 있다고 알려 줌 |
-| 보드 여러 대 | 보드마다 `HOST_NAME`을 다르게 (`i2r-kitchen` → `http://i2r-kitchen.local`). 여러 대를 한 화면에서 묶으려면 ② local(MQTT) 그룹을 안내 |
+| 보드 여러 대 | 보드마다 `HOST_NAME`을 다르게 (`i2r-kitchen` → `http://i2r-kitchen.local`). 여러 대를 한 화면에서 묶으려면 ② `local/`(MQTT) 그룹을 안내 |
 
 ## 5. 컴파일, 업로드, 확인
 
@@ -104,4 +106,4 @@ I2R_PLC 함수: `plc.input(n)`, `plc.rising(n)`, `plc.falling(n)`, `plc.output(n
 - `loop()`를 막지 않습니다 (`delay()`, 오래 걸리는 `while` 금지). 웹과 규칙이 함께 멈춥니다.
 - 비밀번호, 실제 MAC, IP를 코드나 GitHub에 올리는 파일에 적지 않습니다.
 - 같은 Wi-Fi의 누구나 이 화면으로 릴레이를 켤 수 있다는 점을 처음 한 번 알려 줍니다.
-- 프로토콜(`../../protocol.md`)에 있는 명령(`so`, `bio`, `sch`, `bs`, `st`, `gs`)의 모양은 바꾸지 않습니다. 새 기능은 새 명령 이름으로 더합니다.
+- 프로토콜(`../protocol.md`)에 있는 명령(`so`, `bio`, `sch`, `bs`, `st`, `gs`)의 모양은 바꾸지 않습니다. 새 기능은 새 명령 이름으로 더합니다.
