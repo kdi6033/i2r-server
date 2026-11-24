@@ -3,7 +3,7 @@
 이 저장소는 i2r 보드(IoT PLC i2r-02/03/04, Otto)와 같은 i2r 프로토콜로 동작하는 서버 쪽 프로그램입니다.
 i2r 전체 안내판(다른 키트, 작업 폴더, i2r 스킬)은 https://raw.githubusercontent.com/kdi6033/i2r/main/AGENTS.md 에 있습니다.
 폴더는 `protocol.md`(프로토콜 원본), `sim/`(시뮬레이터), 그리고 연결 방식 세 가지 `standalone/`(보드 혼자, ✅), `local/`(현장 서버, 만드는 중), `aws/`(아마존, 만드는 중)입니다.
-사용자가 보드 웹 제어, 스케줄, 입력 규칙, 센서 트리거가 있는 PLC 프로그램을 만들려고 하거나 "업데이트해 줘"라고 하면 10장을 먼저 읽습니다.
+사용자가 보드 웹 제어, 스케줄, 입력 규칙, 센서 트리거가 있는 PLC 프로그램을 만들려고 하거나, Otto 로봇을 휴대폰으로 조종하려 하거나, "업데이트해 줘"라고 하면 10장을 먼저 읽습니다.
 
 사용자는 보통 이렇게 말합니다.
 - "https://github.com/kdi6033/i2r 읽고 i2r 개발을 도와줘. 시뮬레이터 켜 줘" (안내판을 거쳐 옴)
@@ -149,6 +149,7 @@ standalone을 쓰는 사용자(보드, `my_sketches/`)라면 10.4장 순서대�
 | `standalone/` | ① 혼자 동작: 보드가 웹서버 (입력 규칙, 스케줄, 센서 트리거, 이름, NTP). 보드별 폴더 `i2r-02/03/04`. 10장 |
 | `standalone/README.md` | standalone 설명 (쓰는 법, 화면, 동작 방식, 웹 API, 컴파일) |
 | `standalone/CLAUDE.md` | 학생 요구를 분석해 standalone으로 프로그램 만드는 순서, 코드 지도 |
+| `standalone/i2r-otto/` | ① Otto 로봇 혼자 동작: `http://otto.local`, i2r.link 로봇 화면의 모든 기능. 설명은 `standalone/i2r-otto/README.md` |
 | `sim/firmware/` | 가상보드 프로그램 .bin (I2R_IoT 02_PLC_Simulator, i2r-02/03/04)과 `manifest.json`. I2R_IoT, I2R_PLC가 바뀌면 `python sim/firmware/build_firmware.py`로 다시 만들고 커밋 |
 
 ## 9. 프로토콜 (`protocol.md`)
@@ -162,6 +163,8 @@ standalone을 쓰는 사용자(보드, `my_sketches/`)라면 10.4장 순서대�
 ## 10. standalone: 보드 혼자 동작 (`standalone/`)
 
 i2r PLC(i2r-02/03/04)가 웹서버가 되어 같은 공유기의 휴대폰, PC에서 `http://i2r.local`로 제어하는 펌웨어입니다. 사람이 읽는 설명은 [standalone/README.md](standalone/README.md), Claude 작업 순서와 코드 지도는 [standalone/CLAUDE.md](standalone/CLAUDE.md)입니다.
+
+**Otto 로봇**은 `standalone/i2r-otto/`입니다 (`http://otto.local`, 걷기·굴리기·미끄러짐, 댄스, 순찰, AI 대화, 라디오, 말하기, 받아쓰기, 시계, 책읽기, 예약, 내 음악, 조명, 데모, 로봇 맞추기). 설명, 웹 API, 보드 설정(ESP32-S3 16MB, Partition Custom, OPI PSRAM, 업로드 115200)은 [standalone/i2r-otto/README.md](standalone/i2r-otto/README.md)를 따릅니다. 올리기 전에 로봇을 바닥에 놓고 배터리를 켰는지 묻습니다.
 
 이 저장소의 i2r 연결 방식은 세 가지이고, 폴더 이름이 곧 그룹 이름입니다. 각 그룹 안에서 보드마다 폴더를 나눕니다 (`standalone/i2r-02/`, `i2r-03/`, `i2r-04/`. 소스는 `#define I2R_BOARD` 한 줄만 다름).
 

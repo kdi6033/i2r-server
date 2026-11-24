@@ -15,6 +15,8 @@ i2r PLC(i2r-02, i2r-03, i2r-04)를 **서버나 인터넷 없이** 같은 공유�
 | 펌웨어 받기 | https://kdi.i2r.link/firmware 맨 아래 **i2r_server 펌웨어 → ① 혼자 동작** |
 | 펌웨어 파일 | https://github.com/kdi6033/download/tree/main/i2r_server/standalone |
 
+> 🤖 **Otto 로봇**도 같은 방식으로 혼자 동작합니다: [i2r-otto/](i2r-otto/) (`http://otto.local`, 걷기·굴리기·댄스, AI 대화, 라디오, 내 음악, 예약, 로봇 맞추기 등). 설명은 [i2r-otto/README.md](i2r-otto/README.md)에 있습니다. 이 아래는 PLC 설명입니다.
+
 ## 1. 바로 쓰기 (프로그램 없이)
 
 1. 보드를 USB로 PC에 연결하고, 크롬이나 엣지에서 https://kdi.i2r.link/firmware 를 엽니다.

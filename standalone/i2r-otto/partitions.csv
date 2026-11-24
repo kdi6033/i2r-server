@@ -1,0 +1,6 @@
+# Uses the full 16MB flash (0x1000000). spiffs extends to the end (0x1000000). 단일 app (OTA 없음)
+# Name,   Type, SubType,  Offset,   Size,      Flags
+nvs,      data, nvs,      0x9000,   0x5000,
+app0,     app,  factory,  0x10000,  0x400000,
+coredump, data, coredump, 0x410000, 0x10000,
+spiffs,   data, spiffs,   0x420000, 0xBE0000,
