@@ -126,6 +126,7 @@ python test_protocol.py --server test.mosquitto.org --group sim-xxxx --mac 02:..
 
 `git pull --ff-only`을 하고, 시뮬레이터가 켜져 있었다면 다시 켭니다. 새로 들어온 것을 3줄 이내로 알립니다.
 standalone을 쓰는 사용자(보드, `my_sketches/`)라면 10.4장 순서대로 보드와 사용자 프로그램까지 맞춥니다.
+**새 키트 확인**: 안내판 원문(`curl -sL https://raw.githubusercontent.com/kdi6033/i2r/main/AGENTS.md`) 5장대로, 1장 표의 키트(i2r-plc, otto, i2r-server, i2r-05 AI 챗봇) 중 작업 폴더에 없는 것이 있으면 받을지 한 번 묻습니다. 작업 폴더 `CLAUDE.md`에 "받지 않은 키트"로 적힌 것은 묻지 않습니다.
 
 ## 7. 안전 (꼭 지키기)
 
@@ -228,6 +229,7 @@ i2r PLC(i2r-02/03/04)가 웹서버가 되어 같은 공유기의 휴대폰, PC�
    - 업로드 전에 릴레이 안전을 묻습니다 (10.1장 5번).
 5. **사용자 프로그램(`my_sketches/`)**: 예제를 복사해 고친 프로그램은 자동으로 바뀌지 않습니다. 새 예제에서 바뀐 부분(`git diff <이전>..<새> -- standalone/i2r-0X/`)을 보여 주고, 원하면 사용자 변경을 지키면서 옮겨 넣은 뒤 컴파일, 업로드합니다.
 6. **확인**: 업로드했으면 시리얼이나 `/state`의 `ver`가 새 버전인지 확인합니다.
+7. **새 키트 확인**: 안내판 원문(`curl -sL https://raw.githubusercontent.com/kdi6033/i2r/main/AGENTS.md`) 5장대로, 1장 표의 키트(i2r-plc, otto, i2r-server, i2r-05 AI 챗봇) 중 작업 폴더에 없는 것이 있으면 받을지 한 번 묻습니다. 작업 폴더 `CLAUDE.md`에 "받지 않은 키트"로 적힌 것은 묻지 않습니다.
 
 ## 안내판을 거쳐 왔다면 (처음 한 번 끝날 때)
 
